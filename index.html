@@ -51,11 +51,11 @@
   .fill{position:absolute;left:0;top:0;bottom:0;border-radius:7px 0 0 7px;width:0;transition:width .9s var(--ease)}
   .fill.acc{background:var(--petrol-soft)}
   .fill.rep{background:var(--petrol)}
-  .nums{display:flex;gap:14px;margin-top:6px;font-size:12px;color:var(--sub);white-space:nowrap}
+  .nums{display:flex;gap:14px;margin-top:6px;font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden}
   .nums b{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600}
   .stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--track)}
   .stack i{display:block;height:100%;flex-grow:0;flex-shrink:0;flex-basis:0%;transition:flex-basis .9s var(--ease)}
-  .posline{margin-top:6px;font-size:12px;color:var(--sub);white-space:nowrap;display:block}
+  .posline{margin-top:6px;font-size:12px;color:var(--sub);white-space:nowrap;display:block;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .posline b{font-family:'IBM Plex Mono',monospace;color:var(--ink)}
   .verdict{justify-self:end;text-align:right}
   .chip{display:inline-block;border-radius:6px;padding:4px 10px;font-size:11.5px;font-weight:600;letter-spacing:.04em}
@@ -71,6 +71,9 @@
   .row.open .detail{grid-template-rows:1fr}
   .dinner{overflow:hidden}
   .dwrap{border-top:1px solid var(--line);padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .dverdict{grid-column:1/-1;display:flex;gap:12px;align-items:flex-start;border-bottom:1px dashed var(--line);padding-bottom:12px}
+  .dverdict .chip{flex:none}
+  .dverdict .dwhy{font-size:12.5px;color:var(--sub);line-height:1.5;padding-top:2px}
   .dh{font-size:11px;font-weight:600;letter-spacing:.07em;color:var(--sub);text-transform:uppercase;margin-bottom:10px}
   .cline{display:grid;grid-template-columns:86px 1fr 92px;gap:10px;align-items:center;margin-bottom:8px;font-size:12px}
   .cline .clbl{color:var(--sub)}
@@ -173,7 +176,7 @@ function render(d){
   app.innerHTML=html;
 
   var rowsEl=document.getElementById('rows');
-  d.funnels.forEach(function(f){
+  d.funnels.forEach(function(f,fidx){
     var o=f.o||{}; OUTCOMES.forEach(function(x){o[x.k]=o[x.k]||0;});
     var pos=o.meeting+o.positive+o.referral;
     var posShare=pct(pos,f.rep);
@@ -187,9 +190,10 @@ function render(d){
     h+='<span class="nums"><span>отпр <b>'+f.sent+'</b></span><span>прин <b>'+f.acc+'</b> · '+pct(f.acc,f.sent)+'%</span><span>отв <b>'+f.rep+'</b> · '+pct(f.rep,f.acc)+'%</span></span></span>';
     h+='<span><span class="stack">'+OUTCOMES.map(function(x){return '<i style="background:'+x.c+'" data-fb="'+(f.rep?o[x.k]/f.rep*100:0)+'"></i>';}).join('')+'</span>';
     h+='<span class="posline">positive <b>'+posShare+'%</b>'+(f.note?' · '+esc(f.note):'')+'</span></span>';
-    h+='<span class="verdict"><span class="chip '+esc(f.verdict)+'">'+esc(f.vtext)+'</span><span class="why">'+esc(f.why)+'</span></span>';
+    h+='<span class="verdict"><span class="chip '+esc(f.verdict)+'">'+esc(f.vtext)+'</span></span>';
     h+='<span class="chev" aria-hidden="true"></span></button>';
     h+='<div class="detail"><div class="dinner"><div class="dwrap">';
+    h+='<div class="dverdict"><span class="chip '+esc(f.verdict)+'">'+esc(f.vtext)+'</span><span class="dwhy">'+esc(f.why)+'</span></div>';
     h+='<div><div class="dh">Каскад воронки</div>';
     h+='<div class="cline"><span class="clbl">отправлено</span><span class="bar"><span class="fill" style="background:#D7E3DF" data-w="100"></span></span><span class="cnum">'+f.sent+'<small>100%</small></span></div>';
     h+='<div class="cline"><span class="clbl">принято</span><span class="bar"><span class="fill acc" data-w="'+pct(f.acc,f.sent)+'"></span></span><span class="cnum">'+f.acc+'<small>'+pct(f.acc,f.sent)+'%</small></span></div>';
@@ -204,6 +208,7 @@ function render(d){
     row.innerHTML=h;
     rowsEl.appendChild(row);
     var head=row.querySelector('.head');
+    if(fidx===0){row.classList.add('open');head.setAttribute('aria-expanded','true');}
     head.addEventListener('click',function(){
       var open=row.classList.toggle('open');
       head.setAttribute('aria-expanded',open);
@@ -238,6 +243,7 @@ function render(d){
 
   requestAnimationFrame(function(){requestAnimationFrame(function(){
     document.querySelectorAll('.head .fill').forEach(function(el){el.style.width=el.dataset.w+'%';});
+    document.querySelectorAll('.row.open .detail .fill').forEach(function(el){el.style.width=el.dataset.w+'%';});
     document.querySelectorAll('.head .stack i').forEach(function(el){el.style.flexBasis=el.dataset.fb+'%';});
     document.querySelectorAll('.wk .b').forEach(function(el){el.style.height=el.dataset.h+'px';});
     document.body.classList.add('ready');
