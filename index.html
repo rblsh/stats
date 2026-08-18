@@ -246,7 +246,7 @@ function render(d){
     var ov=document.createElement('div');
     ov.className='overlay';
     var items=d.meetings_list.map(function(m){
-      return '<div class="mitem"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+esc(m.funnel||'')+(m.where?' · '+esc(m.where):'')+'</div>'+(m.url?'<a class="mlink" href="'+esc(m.url)+'" target="_blank" rel="noopener">Открыть переписку →</a>':'')+'</div>';
+      return '<div class="mitem"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+esc(m.funnel||'')+(m.where?' · '+esc(m.where):'')+'</div>'+(m.url?'<a class="mlink" href="'+esc(m.url)+'" target="_blank" rel="noopener">'+(m.url.indexOf('linkedin.com/in/')>-1?'Профиль в LinkedIn →':'Открыть переписку →')+'</a>':'')+'</div>';
     }).join('');
     ov.innerHTML='<div class="modal"><div class="mhead"><h3>Назначенные встречи</h3><button class="mclose" aria-label="Закрыть">×</button></div>'+items+'</div>';
     document.body.appendChild(ov);
