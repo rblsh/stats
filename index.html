@@ -47,6 +47,9 @@
   .head:focus-visible{outline:2px solid var(--petrol);outline-offset:-2px;border-radius:10px}
   .fname{font-weight:600;font-size:13.5px}
   .fsub{color:var(--sub);font-size:12px;margin-top:2px;display:block}
+  .fprog{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:5px;background:var(--track);color:var(--sub);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.02em;vertical-align:1px;white-space:nowrap;cursor:help}
+  .fprog.hi{background:#DFF2E9;color:var(--v-dev)}
+  .fprog.lo{background:#FBEED6;color:var(--v-fix)}
   .bar{position:relative;height:14px;background:var(--track);border-radius:7px;overflow:hidden;display:block}
   .fill{position:absolute;left:0;top:0;bottom:0;border-radius:7px 0 0 7px;width:0;transition:width .9s var(--ease)}
   .fill.acc{background:var(--petrol-soft)}
@@ -208,7 +211,10 @@ function render(d){
     row.className='row';
     var h='';
     h+='<button class="head" aria-expanded="false">';
-    h+='<span><span class="fname">'+esc(f.name)+'</span><span class="fsub">'+esc(f.senders)+'</span></span>';
+    var prog=(f.base?pct(f.sent,f.base):null);
+    var progCls=(prog==null?'':(prog>=80?' hi':(prog<30?' lo':'')));
+    var progChip=(prog==null?'':'<span class="fprog'+progCls+'" title="Обработано '+f.sent+' из '+f.base+' контактов базы">'+prog+'%</span>');
+    h+='<span><span class="fname">'+esc(f.name)+progChip+'</span><span class="fsub">'+esc(f.senders)+'</span></span>';
     h+='<span><span class="bar"><span class="fill acc" data-w="'+pct(f.acc,f.sent)+'"></span><span class="fill rep" data-w="'+pct(f.rep,f.sent)+'"></span></span>';
     h+='<span class="nums"><span>отпр <b>'+f.sent+'</b></span><span>прин <b>'+f.acc+'</b> · '+pct(f.acc,f.sent)+'%</span><span>отв <b>'+f.rep+'</b> · '+pct(f.rep,f.acc)+'%</span></span></span>';
     h+='<span><span class="stack">'+OUTCOMES.map(function(x){return '<i style="background:'+x.c+'" data-fb="'+(f.rep?o[x.k]/f.rep*100:0)+'"></i>';}).join('')+'</span>';
@@ -218,9 +224,13 @@ function render(d){
     h+='<div class="detail"><div class="dinner"><div class="dwrap">';
     h+='<div class="dverdict"><span class="chip '+esc(f.verdict)+'">'+esc(f.vtext)+'</span><span class="dwhy">'+esc(f.why)+'</span></div>';
     h+='<div><div class="dh">Каскад воронки</div>';
-    h+='<div class="cline"><span class="clbl">отправлено</span><span class="bar"><span class="fill" style="background:#D7E3DF" data-w="100"></span></span><span class="cnum">'+f.sent+'<small>100%</small></span></div>';
-    h+='<div class="cline"><span class="clbl">принято</span><span class="bar"><span class="fill acc" data-w="'+pct(f.acc,f.sent)+'"></span></span><span class="cnum">'+f.acc+'<small>'+pct(f.acc,f.sent)+'%</small></span></div>';
-    h+='<div class="cline"><span class="clbl">ответили</span><span class="bar"><span class="fill rep" data-w="'+pct(f.rep,f.sent)+'"></span></span><span class="cnum">'+f.rep+'<small>'+pct(f.rep,f.acc)+'% прин</small></span></div></div>';
+    if(f.base){
+      h+='<div class="cline"><span class="clbl">база</span><span class="bar"><span class="fill" style="background:#E8EFEC" data-w="100"></span></span><span class="cnum">'+f.base+'<small>залито</small></span></div>';
+    }
+    h+='<div class="cline"><span class="clbl">отправлено</span><span class="bar"><span class="fill" style="background:#D7E3DF" data-w="'+(f.base?pct(f.sent,f.base):100)+'"></span></span><span class="cnum">'+f.sent+'<small>'+(f.base?pct(f.sent,f.base)+'% базы':'100%')+'</small></span></div>';
+    var scale=(f.base?f.base:f.sent);
+    h+='<div class="cline"><span class="clbl">принято</span><span class="bar"><span class="fill acc" data-w="'+pct(f.acc,scale)+'"></span></span><span class="cnum">'+f.acc+'<small>'+pct(f.acc,f.sent)+'% отпр</small></span></div>';
+    h+='<div class="cline"><span class="clbl">ответили</span><span class="bar"><span class="fill rep" data-w="'+pct(f.rep,scale)+'"></span></span><span class="cnum">'+f.rep+'<small>'+pct(f.rep,f.acc)+'% прин</small></span></div></div>';
     h+='<div><div class="dh">Исходы ответов</div>';
     h+=OUTCOMES.map(function(x){return '<div class="oline'+(o[x.k]?'':' zero')+'"><span class="olbl"><i style="background:'+x.c+'"></i>'+x.name+'</span><span class="bar"><span class="fill" style="background:'+x.c+'" data-w="'+(o[x.k]/maxO*100)+'"></span></span><span class="onum">'+o[x.k]+'</span></div>';}).join('');
     h+='</div>';
