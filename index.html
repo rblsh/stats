@@ -12,7 +12,7 @@
     --bg:#F3F6F5; --card:#FFFFFF; --ink:#14231F; --sub:#5E6E69; --line:#E2EAE7;
     --petrol:#0D5A50; --petrol-soft:#BFD8D2; --track:#E9EFEC;
     --c-meeting:#0D5A50; --c-positive:#2FA379; --c-referral:#4A7BD4;
-    --c-neutral:#B7C3BE; --c-refused:#D0603F; --c-optout:#7E2E1E;
+    --c-deferred:#D9A441; --c-neutral:#B7C3BE; --c-refused:#D0603F; --c-optout:#7E2E1E;
     --v-dev-bg:#DFF2E9; --v-dev:#0E6B4F; --v-fix-bg:#FBEED6; --v-fix:#96610F;
     --v-stop-bg:#FBE2DA; --v-stop:#A3371C; --v-low-bg:#ECF0EF; --v-low:#5E6E69;
     --ease:cubic-bezier(.22,.8,.24,1);
@@ -159,6 +159,7 @@ var OUTCOMES = [
   {k:'meeting', name:'встреча',    c:'var(--c-meeting)'},
   {k:'positive',name:'интерес',    c:'var(--c-positive)'},
   {k:'referral',name:'рефералка',  c:'var(--c-referral)'},
+  {k:'deferred',name:'отложено',   c:'var(--c-deferred)'},
   {k:'neutral', name:'нейтрально', c:'var(--c-neutral)'},
   {k:'refused', name:'отказ',      c:'var(--c-refused)'},
   {k:'optout',  name:'опт-аут',    c:'var(--c-optout)'}
@@ -190,7 +191,7 @@ function render(d){
 
   html+='<h2>Воронки <span>отсортированы по вердикту · слева воронка коннектов, справа качество ответов</span></h2><div class="rows" id="rows"></div>';
   html+='<div class="legend">'+OUTCOMES.map(function(o){return '<span><i style="background:'+o.c+'"></i>'+o.name+'</span>';}).join('')+'</div>';
-  var DEFS={meeting:'назначен продуктовый созвон или слот на Gamescom',positive:'живой интерес: вопросы по продукту, просьба цифр или материалов',referral:'продукт сам не берёт, но ушёл в реферальную программу',neutral:'ответил вежливо, но без развития разговора',refused:'отказ или «нерелевантно», включая мягкий',optout:'жёсткий стоп: «не пишите», жалоба'};
+  var DEFS={meeting:'назначен продуктовый созвон или слот на Gamescom',positive:'живой интерес: вопросы по продукту, просьба цифр или материалов',referral:'продукт сам не берёт, но ушёл в реферальную программу',deferred:'отложил решение: «не сейчас, вернёмся позже» - тёплая база для ретача',neutral:'ответил вежливо, но без развития разговора',refused:'явный отказ от продукта: «не надо», «нерелевантно», «уже есть решение»',optout:'жёсткий стоп: «не пишите», жалоба'};
   html+='<details class="defs"><summary>Что значат исходы</summary><div class="defsbody">'+OUTCOMES.map(function(o){return '<div class="defrow"><i style="background:'+o.c+'"></i><b>'+o.name+'</b> - '+DEFS[o.k]+'</div>';}).join('')+'</div></details>';
   if(d.weeks&&d.weeks.length){
     html+='<h2>Динамика по неделям <span>история копится с 04.08</span></h2><div class="weeks" id="weeks"></div>';
