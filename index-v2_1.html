@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Статистика воронок</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2224%22 fill=%22%23007AFF%22/><rect x=%2222%22 y=%2252%22 width=%2214%22 height=%2228%22 rx=%223%22 fill=%22white%22/><rect x=%2243%22 y=%2236%22 width=%2214%22 height=%2244%22 rx=%223%22 fill=%22white%22/><rect x=%2264%22 y=%2220%22 width=%2214%22 height=%2260%22 rx=%223%22 fill=%22white%22/></svg>">
+<style>
+  /* ============================================================
+     ТОКЕНЫ. Семантические цвета Apple (light/dark), системный шрифт,
+     шкала SF-типографики: тайтл 34, заголовок 17, тело 15, сноска 13, подпись 12.
+     ============================================================ */
+  :root{
+    color-scheme:light dark;
+    --bg:#F2F2F7; --bg2:#FFFFFF; --card:#FFFFFF; --card2:#F2F2F7;
+    --label:#000000; --label2:rgba(60,60,67,.6); --label3:rgba(60,60,67,.3); --label4:rgba(60,60,67,.18);
+    --sep:rgba(60,60,67,.29); --fill:rgba(120,120,128,.2); --fill2:rgba(120,120,128,.16); --fill3:rgba(118,118,128,.12);
+    --blue:#007AFF; --green:#34C759; --orange:#FF9500; --red:#FF3B30; --indigo:#5856D6; --brown:#A2845E; --gray:#8E8E93; --teal:#30B0C7;
+    --glass:rgba(249,249,249,.68); --spec:rgba(255,255,255,.6); --glass-ring:rgba(0,0,0,.06);
+    --ring:0 0 0 var(--hair) var(--sep) inset;
+    --dwrap-bg:#F2F2F7; --os-bg:#FFFFFF; --thumb-bg:#FFFFFF;
+    --shadow-sheet:0 24px 80px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.08);
+    --shadow-pop:0 12px 40px rgba(0,0,0,.16), 0 1px 3px rgba(0,0,0,.06);
+    --r-group:16px; --r-inner:10px; --r-sheet:22px;
+    --hair:0.5px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  /* Тёмная палитра. Один блок, применяется либо системой (Авто), либо руками. */
+  @media(prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#000000; --bg2:#1C1C1E; --card:#1C1C1E; --card2:#2C2C2E;
+    --label:#FFFFFF; --label2:rgba(235,235,245,.6); --label3:rgba(235,235,245,.3); --label4:rgba(235,235,245,.16);
+    --sep:rgba(84,84,88,.65); --fill:rgba(120,120,128,.36); --fill2:rgba(120,120,128,.32); --fill3:rgba(118,118,128,.24);
+    --blue:#0A84FF; --green:#30D158; --orange:#FF9F0A; --red:#FF453A; --indigo:#5E5CE6; --brown:#AC8E68; --gray:#8E8E93; --teal:#40C8E0;
+    --glass:rgba(30,30,32,.66); --spec:rgba(255,255,255,.14); --glass-ring:rgba(255,255,255,.1);
+    --ring:none; --dwrap-bg:#232325; --os-bg:#2C2C2E; --thumb-bg:#636366;
+    --shadow-sheet:0 24px 80px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.3);
+    --shadow-pop:0 12px 40px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.3);
+  } }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#000000; --bg2:#1C1C1E; --card:#1C1C1E; --card2:#2C2C2E;
+    --label:#FFFFFF; --label2:rgba(235,235,245,.6); --label3:rgba(235,235,245,.3); --label4:rgba(235,235,245,.16);
+    --sep:rgba(84,84,88,.65); --fill:rgba(120,120,128,.36); --fill2:rgba(120,120,128,.32); --fill3:rgba(118,118,128,.24);
+    --blue:#0A84FF; --green:#30D158; --orange:#FF9F0A; --red:#FF453A; --indigo:#5E5CE6; --brown:#AC8E68; --gray:#8E8E93; --teal:#40C8E0;
+    --glass:rgba(30,30,32,.66); --spec:rgba(255,255,255,.14); --glass-ring:rgba(255,255,255,.1);
+    --ring:none; --dwrap-bg:#232325; --os-bg:#2C2C2E; --thumb-bg:#636366;
+    --shadow-sheet:0 24px 80px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.3);
+    --shadow-pop:0 12px 40px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.3);
+  }
+  :root[data-theme="light"]{color-scheme:light}
+  /* смена темы гасится мягко, без резкого скачка яркости */
+  body,.group,.row,.dwrap,.os,.sheet,.nav .inner{transition:background-color .28s ease, color .28s ease}
+  @media(min-resolution:1.5dppx){ :root{--hair:0.5px} }
+  @media(max-resolution:1.49dppx){ :root{--hair:1px} }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg); color:var(--label); font-family:var(--font);
+    font-size:15px; line-height:1.35; letter-spacing:-0.01em;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    padding:0 16px calc(56px + env(safe-area-inset-bottom));
+  }
+  .num{font-variant-numeric:tabular-nums lining-nums; font-feature-settings:"tnum" 1}
+  a{color:var(--blue); text-decoration:none}
+  button{font:inherit; color:inherit; -webkit-tap-highlight-color:transparent; touch-action:manipulation}
+  .wrap{max-width:960px; margin:0 auto}
+
+  /* мгновенный отклик на нажатие - pointer-down, не click */
+  .press{transition:transform .12s cubic-bezier(.2,.7,.2,1), background-color .12s ease}
+  .press.is-down{transform:scale(.985)}
+
+  /* ---------- Навигация: стекло, появляется, когда крупный тайтл уходит под неё ---------- */
+  /* Плавающая капсула. Контроллы висят НАД контентом, а не отрезают полосу экрана. */
+  .nav{
+    position:fixed; top:0; left:0; right:0; z-index:40;
+    padding:calc(env(safe-area-inset-top) + 8px) 12px 0;
+    display:flex; justify-content:center; pointer-events:none;
+    opacity:0; transform:translateY(-12px);
+    transition:opacity .22s ease, transform .34s cubic-bezier(.2,.7,.2,1);
+  }
+  .nav.show{opacity:1; transform:none}
+  .nav .inner{
+    pointer-events:auto; display:flex; align-items:center; gap:14px;
+    background:var(--glass); -webkit-backdrop-filter:blur(24px) saturate(190%); backdrop-filter:blur(24px) saturate(190%);
+    border-radius:99px; padding:6px 8px 6px 18px; max-width:100%;
+    box-shadow:var(--shadow-pop), 0 0 0 var(--hair) var(--glass-ring), inset 0 1px 0 var(--spec);
+  }
+  .nav.show{transition-delay:0s}
+  .nav .ttl{font-size:15px; font-weight:600; letter-spacing:-0.01em; white-space:nowrap}
+  .nav .sub{font-size:13px; color:var(--label2); letter-spacing:0; white-space:nowrap}
+
+  /* ---------- Крупный тайтл ---------- */
+  .large{padding:calc(38px + env(safe-area-inset-top)) 0 6px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px 16px; flex-wrap:wrap}
+  .large .themeseg{margin-left:auto}
+  .large .lt{min-width:0}
+  .large h1{font-size:40px; line-height:1.05; font-weight:700; letter-spacing:-0.028em}
+  .large .meta{margin-top:6px; font-size:15px; color:var(--label2); display:flex; align-items:center; gap:8px; flex-wrap:wrap; letter-spacing:-0.005em}
+  .large .meta b{font-weight:600; color:var(--label)}
+  .fresh{display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:600; letter-spacing:0; padding:3px 9px; border-radius:99px; background:color-mix(in srgb,var(--green) 16%,transparent); color:var(--green)}
+  .fresh::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+  .fresh.mid{background:var(--fill2); color:var(--label2)}
+  .fresh.old{background:color-mix(in srgb,var(--orange) 18%,transparent); color:var(--orange)}
+
+  /* ---------- Сгруппированные списки (inset grouped) ---------- */
+  .group{background:var(--card); border-radius:var(--r-group); overflow:hidden; box-shadow:var(--ring)}
+  .gh{font-size:13px; font-weight:400; letter-spacing:.04em; text-transform:uppercase; color:var(--label2); padding:0 16px; margin:28px 0 8px; display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+  .gh .hint{text-transform:none; letter-spacing:-0.005em; font-size:13px}
+  .gf{font-size:13px; color:var(--label2); padding:8px 16px 0; line-height:1.4; letter-spacing:0}
+
+  /* ---------- Сводка: один блок, ячейки разделены волосяными линиями ---------- */
+  .totals{display:grid; grid-template-columns:repeat(5,1fr); margin-top:22px}
+  .tot{padding:14px 16px 15px; position:relative; text-align:left; background:none; border:0; border-radius:0; width:100%; cursor:default}
+  .tot + .tot{box-shadow:calc(-1 * var(--hair)) 0 0 var(--sep)}
+  .tot .lbl{font-size:13px; color:var(--label2); letter-spacing:0; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .tot .val{font-size:28px; font-weight:600; letter-spacing:-0.022em; line-height:1.05}
+  .tot .val small{font-size:15px; font-weight:500; color:var(--label2); margin-left:5px; letter-spacing:-0.005em}
+  .tot.hero .val{color:var(--blue)}
+  .tot.clickable{cursor:pointer}
+  .tot.clickable:hover{background:var(--fill3)}
+  .tot.clickable.is-down{background:var(--fill); transform:none}
+  .tot .more{position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--label3); font-size:17px; font-weight:600}
+  .tot:focus-visible{outline:2px solid var(--blue); outline-offset:-2px; z-index:1}
+
+  /* ---------- Плашка про устаревшие данные ---------- */
+  .stale{display:flex; gap:10px; align-items:flex-start; margin-top:16px; padding:12px 14px; border-radius:var(--r-group); background:color-mix(in srgb,var(--orange) 14%,var(--card)); color:var(--label); font-size:13px; line-height:1.4; letter-spacing:0}
+  .stale i{flex:none; width:20px; height:20px; border-radius:50%; background:var(--orange); color:#fff; display:grid; place-items:center; font-style:normal; font-weight:700; font-size:13px}
+  .stale b{font-weight:600}
+  .stale[hidden]{display:none}
+
+  /* ---------- Переключатель темы: Светлая / Тёмная / Авто ---------- */
+  .themeseg{flex:none; margin-top:6px}
+  .themeseg button{padding:5px 10px; gap:5px; min-height:30px}
+  .themeseg svg{width:15px; height:15px; display:block}
+  .themeseg .lab{font-size:12px}
+  .nav .themeseg{margin-top:0}
+  @media(max-width:520px){ .themeseg .lab{display:none} .themeseg button{padding:5px 11px} }
+
+  /* ---------- Сегментированный контрол ---------- */
+  .segwrap{display:flex; justify-content:space-between; align-items:center; gap:12px; margin:26px 0 8px; flex-wrap:wrap}
+  .seg{position:relative; display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr; background:var(--fill3); border-radius:9px; padding:2px; isolation:isolate; user-select:none}
+  .seg .thumb{position:absolute; top:2px; bottom:2px; left:2px; width:40px; border-radius:8px; background:var(--thumb-bg); box-shadow:0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); z-index:0; will-change:transform,width}
+  .seg button{position:relative; z-index:1; background:none; border:0; padding:5px 14px; font-size:13px; font-weight:500; letter-spacing:0; color:var(--label); border-radius:7px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:6px}
+  .seg button .cnt{font-size:12px; color:var(--label2); font-weight:500}
+  .seg button[aria-pressed="true"]{font-weight:600}
+  .seg button:active:not([aria-pressed="true"]){opacity:.5}
+  .seg button:focus-visible{outline:2px solid var(--blue); outline-offset:1px}
+  .seg button i{width:8px; height:8px; border-radius:50%; flex:none}
+  .period{font-size:13px; color:var(--label2); letter-spacing:0}
+
+  /* ---------- Строка воронки ---------- */
+  .rowwrap{display:grid; grid-template-rows:1fr; transition:grid-template-rows .32s cubic-bezier(.2,.7,.2,1), opacity .22s ease}
+  .rowwrap.hide{grid-template-rows:0fr; opacity:0; pointer-events:none}
+  .rowwrap > div{overflow:hidden}
+  .rowwrap + .rowwrap .row{box-shadow:inset 0 var(--hair) 0 var(--sep)}
+  .rowwrap.hide + .rowwrap .row{box-shadow:none}
+  .row{background:var(--card); transition:background-color .16s}
+  .rowwrap .row{opacity:0; transform:translateY(10px)}
+  .rowwrap.in .row{opacity:1; transform:none; transition:opacity .5s cubic-bezier(.2,.7,.2,1), transform .55s cubic-bezier(.2,.7,.2,1)}
+  .row.open{background:var(--card)}
+  .head{width:100%; background:none; border:0; text-align:left; cursor:pointer; padding:14px 16px; display:grid; grid-template-columns:minmax(210px,270px) 1fr 170px auto 14px; gap:18px; align-items:center; transition:background-color .12s}
+  .head:hover{background:var(--fill3)}
+  .head.is-down{background:var(--fill); transform:none}
+  .head:focus-visible{outline:2px solid var(--blue); outline-offset:-2px; border-radius:8px}
+  .fname{font-size:15px; font-weight:600; line-height:1.3; letter-spacing:-0.01em; overflow-wrap:anywhere}
+  .fname .sep{color:var(--label3); font-weight:400; margin:0 4px}
+  .fprog{display:inline-block; margin-left:7px; padding:1px 6px; border-radius:5px; background:var(--fill3); color:var(--label2); font-size:11px; font-weight:600; letter-spacing:.01em; vertical-align:1px; white-space:nowrap}
+  .fprog.hi{background:color-mix(in srgb,var(--green) 16%,transparent); color:var(--green)}
+  .fprog.lo{background:color-mix(in srgb,var(--orange) 16%,transparent); color:var(--orange)}
+  .bar{position:relative; height:12px; background:var(--fill3); border-radius:6px; overflow:hidden; display:block}
+  .fill{position:absolute; left:0; top:0; bottom:0; border-radius:6px; width:0; will-change:width}
+  .fill.acc{background:color-mix(in srgb,var(--blue) 38%,transparent)}
+  .fill.rep{background:var(--blue)}
+  .nums{display:flex; gap:14px; margin-top:6px; font-size:12px; color:var(--label2); letter-spacing:0; white-space:nowrap; overflow:hidden}
+  .nums b{color:var(--label); font-weight:600}
+  .stack{display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--fill3); gap:1.5px}
+  .stack i{display:block; height:100%; flex:0 0 0%; will-change:flex-basis; transition:opacity .16s}
+  .stack:hover i{opacity:.4}
+  .stack i:hover{opacity:1}
+  .posline{margin-top:6px; font-size:12px; color:var(--label2); letter-spacing:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .posline b{color:var(--label); font-weight:600}
+  .verdict{justify-self:end; text-align:right; min-width:120px}
+  .pill{display:inline-flex; align-items:center; gap:6px; border-radius:99px; padding:4px 10px 4px 8px; font-size:12px; font-weight:600; letter-spacing:.01em; white-space:nowrap}
+  .pill::before{content:""; width:7px; height:7px; border-radius:50%; background:currentColor}
+  .pill.dev{background:color-mix(in srgb,var(--green) 16%,transparent); color:var(--green)}
+  .pill.fix{background:color-mix(in srgb,var(--orange) 18%,transparent); color:var(--orange)}
+  .pill.stop{background:color-mix(in srgb,var(--red) 16%,transparent); color:var(--red)}
+  .pill.low{background:var(--fill2); color:var(--label2)}
+  .why{color:var(--label2); font-size:11.5px; letter-spacing:0; margin-top:5px; line-height:1.35; display:block}
+  .chev{width:14px; height:14px; justify-self:end; position:relative; transition:transform .34s cubic-bezier(.2,.7,.2,1)}
+  .chev::before{content:""; position:absolute; left:3px; top:2px; width:7px; height:7px; border-right:2px solid var(--label3); border-bottom:2px solid var(--label3); transform:rotate(45deg); border-radius:1px}
+  .row.open .chev{transform:rotate(180deg)}
+
+  /* детали - высота анимируется пружиной из JS, от текущего значения */
+  .detail{height:0; overflow:hidden; will-change:height}
+  .dwrap{box-shadow:inset 0 var(--hair) 0 var(--sep); padding:14px 16px 16px; display:grid; grid-template-columns:1fr 1fr; gap:22px; background:var(--dwrap-bg)}
+  .dverdict{grid-column:1/-1; display:flex; gap:12px; align-items:flex-start; padding-bottom:12px; box-shadow:inset 0 calc(-1 * var(--hair)) 0 var(--sep)}
+  .dverdict .pill{flex:none}
+  .dverdict .dwhy{font-size:13px; color:var(--label2); line-height:1.45; padding-top:3px; letter-spacing:0}
+  .dh{font-size:12px; font-weight:600; letter-spacing:.05em; color:var(--label2); text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center}
+  .dcol{min-width:0}
+  .dcol + .dcol{box-shadow:calc(-1 * var(--hair)) 0 0 var(--sep); padding-left:22px}
+  .cline{display:grid; grid-template-columns:82px 1fr 40px 96px; gap:10px; align-items:center; font-size:13px; letter-spacing:0; padding:4px 6px; margin:0 -6px 4px; border-radius:7px; transition:background-color .16s}
+  .cline:hover{background:var(--fill3)}
+  .cline .clbl{color:var(--label2)}
+  .cline .bar{height:9px; border-radius:5px}
+  .cline .cnum{font-weight:600; text-align:right; white-space:nowrap}
+  .cbench{font-size:11.5px; color:var(--label2); text-align:right; white-space:nowrap}
+  .cbench.good{color:var(--green)} .cbench.mid{color:var(--orange)} .cbench.bad{color:var(--red)} .cbench.pale{color:var(--label3)}
+  .bmk{position:absolute; top:-2px; bottom:-2px; width:2px; background:var(--label); opacity:.35; border-radius:1px; z-index:2}
+  .cline.weak{background:color-mix(in srgb,var(--orange) 12%,transparent)}
+  .cline.weak:hover{background:color-mix(in srgb,var(--orange) 18%,transparent)}
+  .weakbadge{margin-left:8px; background:color-mix(in srgb,var(--orange) 18%,transparent); color:var(--orange); border-radius:5px; padding:2px 7px; font-size:10.5px; letter-spacing:.02em; text-transform:none; font-weight:600}
+  .oline{display:grid; grid-template-columns:86px 1fr 62px; gap:10px; align-items:center; font-size:13px; letter-spacing:0; padding:3px 6px; margin:0 -6px 3px; border-radius:7px; transition:background-color .16s}
+  .oline:hover{background:var(--fill3)}
+  .oline .olbl{color:var(--label2); display:flex; align-items:center; gap:7px}
+  .oline .olbl i{width:8px; height:8px; border-radius:50%; flex:none}
+  .oline .bar{height:9px; border-radius:5px}
+  .oline .onum{font-weight:600; text-align:right}
+  .onum small{color:var(--label2); font-weight:500; margin-left:5px; font-size:11px}
+  .oline.zero{opacity:.45}
+  .osum{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; padding-top:12px; box-shadow:inset 0 var(--hair) 0 var(--sep)}
+  .os{background:var(--os-bg); border-radius:10px; padding:9px 11px; cursor:help; box-shadow:0 0 0 var(--hair) var(--sep)}
+  .os b{display:block; font-size:19px; font-weight:600; letter-spacing:-0.02em; line-height:1.1}
+  .os span{font-size:11px; color:var(--label2); display:block; margin-top:3px; line-height:1.3; letter-spacing:0}
+  .os.pos b{color:var(--green)} .os.def b{color:var(--orange)} .os.neg b{color:var(--label2)}
+  .ohint{margin-top:9px; font-size:12px; color:var(--orange); background:color-mix(in srgb,var(--orange) 12%,transparent); border-radius:8px; padding:7px 10px; line-height:1.4; letter-spacing:0}
+  .flink{grid-column:1/-1; display:flex; align-items:center; justify-content:flex-end; gap:12px; font-size:13px; padding-top:12px; box-shadow:inset 0 var(--hair) 0 var(--sep)}
+  .flink .uuid{color:var(--label3); font-size:12px; font-variant-numeric:tabular-nums}
+  .btn{display:inline-flex; align-items:center; gap:6px; background:var(--blue); color:#fff; border:0; border-radius:99px; padding:8px 16px; font-weight:600; font-size:14px; letter-spacing:-0.005em; cursor:pointer; transition:transform .12s cubic-bezier(.2,.7,.2,1), filter .15s}
+  .btn:hover{filter:brightness(1.06)}
+  .btn.is-down{transform:scale(.96)}
+  .btn.tint{background:color-mix(in srgb,var(--blue) 14%,transparent); color:var(--blue)}
+  .btn:focus-visible{outline:2px solid var(--blue); outline-offset:2px}
+
+  .legend{display:flex; flex-wrap:wrap; gap:6px 16px; padding:12px 16px 4px; font-size:12px; color:var(--label2); letter-spacing:0}
+  .legend span{cursor:help; display:inline-flex; align-items:center; gap:6px}
+  .legend i{display:inline-block; width:8px; height:8px; border-radius:50%}
+  .defs{border-radius:var(--r-group)}
+  .defs summary{list-style:none; cursor:pointer; padding:12px 16px; font-size:15px; font-weight:500; display:flex; align-items:center; justify-content:space-between; user-select:none; letter-spacing:-0.01em}
+  .defs summary::-webkit-details-marker{display:none}
+  .defs summary::after{content:""; width:7px; height:7px; border-right:2px solid var(--label3); border-bottom:2px solid var(--label3); transform:rotate(45deg); transition:transform .3s cubic-bezier(.2,.7,.2,1); margin-right:4px}
+  .defs[open] summary::after{transform:rotate(225deg)}
+  .defs summary:hover{background:var(--fill3)}
+  .defs + .defs{box-shadow:inset 0 var(--hair) 0 var(--sep)}
+  .defsbody{padding:2px 16px 14px; display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--label2); line-height:1.45; letter-spacing:0}
+  .defrow i{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:0}
+  .defrow b{color:var(--label); font-weight:600}
+  .vrow{display:flex; gap:10px; align-items:flex-start}
+  .vrow .pill{flex:none; margin-top:1px}
+  .vnote{line-height:1.5; padding-top:4px}
+
+  /* ---------- Лоадер: системный активити-индикатор, не эмодзи ---------- */
+  .loader{margin-top:22px}
+  .lcard{background:var(--card); border-radius:var(--r-group); padding:34px 20px 28px; text-align:center}
+  .spin{width:28px; height:28px; position:relative; display:inline-block}
+  .spin i{position:absolute; left:50%; top:0; width:2.5px; height:8px; margin-left:-1.25px; border-radius:2px; background:var(--label2); transform-origin:50% 14px; opacity:.2; animation:tick 1s linear infinite}
+  @keyframes tick{0%{opacity:1}100%{opacity:.15}}
+  .ltitle{font-size:17px; font-weight:600; margin-top:12px; letter-spacing:-0.01em}
+  .lsub{color:var(--label2); font-size:13px; margin-top:4px; min-height:18px; transition:opacity .26s; letter-spacing:0}
+  .skel{margin-top:16px; display:flex; flex-direction:column; gap:16px}
+  .sk{border-radius:var(--r-group); background:linear-gradient(100deg,var(--card) 20%,var(--card2) 38%,var(--card) 60%); background-size:300% 100%; animation:shimmer 1.6s linear infinite}
+  .sk.t{height:78px} .sk.r{height:260px}
+  @keyframes shimmer{0%{background-position:150% 0}100%{background-position:-50% 0}}
+  .empty{background:var(--card); border-radius:var(--r-group); padding:40px 24px; text-align:center; color:var(--label2); margin-top:22px}
+  .empty svg{width:44px; height:44px; color:var(--label3); margin-bottom:10px}
+  .etitle{font-size:17px; font-weight:600; color:var(--label); letter-spacing:-0.01em}
+  .esub{margin-top:6px; font-size:13px; line-height:1.45; letter-spacing:0}
+  .empty .btn{margin-top:16px}
+  #app.loaded{animation:fadeUp .4s cubic-bezier(.2,.7,.2,1)}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+
+  /* ---------- Поповер-подсказка: появляется из якоря, масштабируется от триггера ---------- */
+  .tip{position:fixed; left:0; top:0; z-index:80; background:var(--glass); -webkit-backdrop-filter:blur(20px) saturate(180%); backdrop-filter:blur(20px) saturate(180%); color:var(--label); font-size:12.5px; line-height:1.4; letter-spacing:0; padding:8px 11px; border-radius:10px; pointer-events:none; opacity:0; max-width:280px; box-shadow:var(--shadow-pop), 0 0 0 var(--hair) var(--sep); font-weight:500; will-change:transform,opacity}
+  [data-tip]{cursor:help}
+
+  /* ---------- Шит: на десктопе - центр, на мобиле - снизу с жестом ---------- */
+  .scrim{position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.35); opacity:0; pointer-events:none; will-change:opacity}
+  .scrim.on{pointer-events:auto}
+  .sheet{position:fixed; z-index:51; background:var(--bg); color:var(--label); border-radius:var(--r-sheet); box-shadow:var(--shadow-sheet); display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:transform,opacity,filter}
+  .sheet.on{pointer-events:auto}
+  .sheet{left:50%; top:50%; width:min(480px, calc(100vw - 32px)); max-height:min(76vh, 640px); transform:translate(-50%,-50%)}
+  .shead{display:flex; align-items:center; justify-content:space-between; padding:14px 18px 10px; flex:none}
+  .shead h3{font-size:17px; font-weight:600; letter-spacing:-0.01em}
+  .shead .cnt{font-size:13px; color:var(--label2); margin-left:8px; font-weight:500}
+  .sclose{width:30px; height:30px; border-radius:50%; background:var(--fill2); border:0; color:var(--label2); display:grid; place-items:center; cursor:pointer; font-size:14px; font-weight:700; transition:background-color .12s, transform .12s}
+  .sclose:hover{background:var(--fill)}
+  .sclose.is-down{transform:scale(.92)}
+  .sbody{overflow:auto; padding:0 16px 18px; overscroll-behavior:contain; -webkit-overflow-scrolling:touch}
+  .grab{display:none; width:36px; height:5px; border-radius:3px; background:var(--label3); margin:8px auto 0; flex:none}
+  .mitem{padding:12px 14px; display:flex; flex-direction:column; gap:2px}
+  .mitem + .mitem{box-shadow:inset 0 var(--hair) 0 var(--sep)}
+  .mname{font-weight:600; font-size:15px; letter-spacing:-0.01em}
+  .msub{color:var(--label2); font-size:13px; letter-spacing:0}
+  .mlink{display:inline-flex; align-items:center; gap:4px; margin-top:4px; font-size:13px; font-weight:600; letter-spacing:0}
+
+  /* ---------- Наверх ---------- */
+  .totop{position:fixed; right:18px; bottom:calc(18px + env(safe-area-inset-bottom)); width:44px; height:44px; border-radius:50%; border:0; background:var(--glass); -webkit-backdrop-filter:blur(20px) saturate(180%); backdrop-filter:blur(20px) saturate(180%); color:var(--blue); cursor:pointer; box-shadow:var(--shadow-pop), 0 0 0 var(--hair) var(--sep); opacity:0; transform:translateY(10px) scale(.9); pointer-events:none; transition:opacity .22s, transform .3s cubic-bezier(.2,.7,.2,1); z-index:45; display:grid; place-items:center}
+  .totop.show{opacity:1; transform:none; pointer-events:auto}
+  .totop.is-down{transform:scale(.92)}
+  .totop svg{width:16px; height:16px}
+
+  /* ---------- Адаптив ---------- */
+  @media(max-width:880px){
+    .totals{grid-template-columns:repeat(2,1fr)}
+    .tot + .tot{box-shadow:none}
+    .tot:nth-child(2n){box-shadow:calc(-1 * var(--hair)) 0 0 var(--sep)}
+    .tot:nth-child(n+3){box-shadow:inset 0 var(--hair) 0 var(--sep)}
+    .tot:nth-child(4){box-shadow:inset 0 var(--hair) 0 var(--sep), calc(-1 * var(--hair)) 0 0 var(--sep)}
+    .tot:nth-child(5){grid-column:1/-1}
+    .head{grid-template-columns:1fr; gap:12px; padding:14px 40px 14px 14px; position:relative}
+    .head>span{min-width:0}
+    .chev{position:absolute; right:14px; top:17px}
+    .verdict{min-width:0}
+    .verdict{justify-self:start; text-align:left}
+    .dwrap{grid-template-columns:1fr}
+    .dcol + .dcol{box-shadow:inset 0 var(--hair) 0 var(--sep); padding-left:0; padding-top:16px}
+    .seg button{padding:5px 10px}
+    .seg button .cnt{display:none}
+    .gh .hint{display:none}
+  }
+  @media(max-width:700px){
+    body{padding-left:12px; padding-right:12px}
+    .large h1{font-size:30px}
+    .sheet{left:0; right:0; top:auto; bottom:0; width:auto; max-height:86vh; border-radius:var(--r-sheet) var(--r-sheet) 0 0; transform:translateY(100%); padding-bottom:env(safe-area-inset-bottom)}
+    .grab{display:block}
+    .shead{padding-top:8px}
+    .seg{width:100%}
+    .themeseg{width:auto; margin-top:2px}
+    .themeseg button{padding:6px 14px}
+    .seg button{padding:6px 4px; font-size:12px}
+    .seg button i{display:none}
+  }
+
+  /* ---------- Снижение движения / прозрачности / контраст ---------- */
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important; transition-duration:.01ms!important}
+    .rowwrap .row{opacity:1!important; transform:none!important}
+    .spin i{animation:none; opacity:.6}
+    html{scroll-behavior:auto}
+  }
+  @media(prefers-reduced-transparency:reduce){
+    .nav .inner,.tip,.totop{background:var(--card); -webkit-backdrop-filter:none; backdrop-filter:none}
+  }
+  @media(prefers-contrast:more){
+    .group,.lcard,.empty,.sheet{box-shadow:0 0 0 1px var(--label3)}
+    .pill,.fresh{outline:1px solid currentColor; outline-offset:-1px}
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav" aria-hidden="true"><div class="inner"><span class="ttl">Статистика воронок</span><span class="sub" id="navmeta"></span><div class="seg themeseg" role="group" aria-label="Оформление"><span class="thumb" aria-hidden="true"></span><button type="button" data-theme-btn data-v="light" aria-pressed="false" title="Светлая тема"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="3.1"/><path d="M8 1.4v1.5M8 13.1v1.5M14.6 8h-1.5M2.9 8H1.4M12.67 3.33l-1.06 1.06M4.39 11.61l-1.06 1.06M12.67 12.67l-1.06-1.06M4.39 4.39 3.33 3.33"/></svg><span class="lab">Светлая</span></button><button type="button" data-theme-btn data-v="dark" aria-pressed="false" title="Тёмная тема"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z"/></svg><span class="lab">Тёмная</span></button><button type="button" data-theme-btn data-v="auto" aria-pressed="true" title="Как в системе"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><circle cx="8" cy="8" r="6.1"/><path d="M8 1.9v12.2" /><path d="M8 1.9a6.1 6.1 0 0 1 0 12.2Z" fill="currentColor" stroke="none"/></svg><span class="lab">Авто</span></button></div></div></nav>
+
+<div class="wrap">
+<header class="large" id="large">
+  <div class="lt">
+    <h1>Статистика воронок</h1>
+    <div class="meta" id="meta">Загрузка…</div>
+  </div>
+  <div class="seg themeseg" role="group" aria-label="Оформление"><span class="thumb" aria-hidden="true"></span><button type="button" data-theme-btn data-v="light" aria-pressed="false" title="Светлая тема"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="3.1"/><path d="M8 1.4v1.5M8 13.1v1.5M14.6 8h-1.5M2.9 8H1.4M12.67 3.33l-1.06 1.06M4.39 11.61l-1.06 1.06M12.67 12.67l-1.06-1.06M4.39 4.39 3.33 3.33"/></svg><span class="lab">Светлая</span></button><button type="button" data-theme-btn data-v="dark" aria-pressed="false" title="Тёмная тема"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z"/></svg><span class="lab">Тёмная</span></button><button type="button" data-theme-btn data-v="auto" aria-pressed="true" title="Как в системе"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><circle cx="8" cy="8" r="6.1"/><path d="M8 1.9v12.2" /><path d="M8 1.9a6.1 6.1 0 0 1 0 12.2Z" fill="currentColor" stroke="none"/></svg><span class="lab">Авто</span></button></div>
+</header>
+<div class="stale" id="stale" hidden></div>
+<div id="app"></div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-hidden="true">
+  <div class="grab" aria-hidden="true"></div>
+  <div class="shead"><h3 id="sheet-title">Назначенные встречи<span class="cnt" id="sheet-cnt"></span></h3><button class="sclose press" id="sclose" type="button" aria-label="Закрыть">✕</button></div>
+  <div class="sbody" id="sbody"></div>
+</div>
+
+<script>
+// ЕДИНСТВЕННАЯ настройка: URL веб-приложения Apps Script (шаг 1 в DEPLOY.md).
+// Для локального просмотра без бэкенда: index-v2.html?demo
+var DATA_URL='https://script.google.com/macros/s/AKfycbyp8f2Wm863NUdwwNJVOBHulM_KNKd8iLnXzCUwvkEUbPWM-5SfNoaxTtdv5OPM4MYIMg/exec';
+
+var OUTCOMES=[
+  {k:'meeting', name:'встреча',    c:'var(--blue)'},
+  {k:'positive',name:'интерес',    c:'var(--green)'},
+  {k:'referral',name:'рефералка',  c:'var(--indigo)'},
+  {k:'deferred',name:'отложено',   c:'var(--orange)'},
+  {k:'neutral', name:'нейтрально', c:'var(--gray)'},
+  {k:'refused', name:'отказ',      c:'var(--red)'},
+  {k:'optout',  name:'опт-аут',    c:'var(--brown)'}
+];
+var VNAME={dev:'Развивать',fix:'Чинить',stop:'Тормозить',low:'Набирает'};
+var VCOLOR={dev:'var(--green)',fix:'var(--orange)',stop:'var(--red)',low:'var(--gray)'};
+var VDEF={
+  dev:'Верх воронки не хуже парка и positive-доля от 40% - можно лить больше',
+  fix:'Одно звено заметно ниже бенчмарка парка либо positive-доля 15-40%',
+  stop:'Провал на объёме - воронку стоит остановить и переложить контакты',
+  low:'Выборки пока не хватает для вывода, воронка набирает данные'
+};
+var DEFS={meeting:'назначен продуктовый созвон или слот на Gamescom',positive:'живой интерес: вопросы по продукту, просьба цифр или материалов',referral:'продукт сам не берёт, но ушёл в реферальную программу',deferred:'отложил решение: «не сейчас, вернёмся позже» - тёплая база для ретача',neutral:'ответил вежливо, но без развития разговора',refused:'явный отказ от продукта: «не надо», «нерелевантно», «уже есть решение»',optout:'жёсткий стоп: «не пишите», жалоба'};
+var LAST_D=null;
+var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ============================================================
+// ПРУЖИНЫ. Параметры как у Apple: response (сек) и damping ratio.
+// Анимация всегда стартует от текущего значения и текущей скорости,
+// поэтому её можно перенацелить или перехватить в любой момент.
+// ============================================================
+var SPRINGS=[], RAF=null;
+function Spring(value,onUpdate,opts){
+  this.x=value; this.v=0; this.target=value; this.on=onUpdate;
+  this.response=(opts&&opts.response)||0.4; this.damping=(opts&&opts.damping!=null)?opts.damping:1;
+  this.eps=(opts&&opts.eps)||0.05; this.active=false; this.onRest=null;
+}
+Spring.prototype.set=function(target,o){
+  o=o||{};
+  this.target=target;
+  if(o.velocity!=null)this.v=o.velocity;
+  if(o.response)this.response=o.response;
+  if(o.damping!=null)this.damping=o.damping;
+  this.onRest=o.onRest||null;
+  if(RM||o.immediate){this.jump(target);return this;}
+  if(!this.active){this.active=true;SPRINGS.push(this);}
+  if(!RAF)RAF=requestAnimationFrame(tickAll);
+  return this;
+};
+Spring.prototype.jump=function(v){
+  this.x=this.target=v; this.v=0; this.active=false;
+  var i=SPRINGS.indexOf(this); if(i>-1)SPRINGS.splice(i,1);
+  this.on(this.x); if(this.onRest){var f=this.onRest;this.onRest=null;f();}
+};
+var lastT=0;
+function tickAll(t){
+  RAF=null;
+  var dt=lastT?Math.min(0.064,(t-lastT)/1000):0.016; lastT=t;
+  for(var i=SPRINGS.length-1;i>=0;i--){
+    var s=SPRINGS[i];
+    var k=Math.pow(2*Math.PI/s.response,2), c=4*Math.PI*s.damping/s.response;
+    // дробим шаг, чтобы жёсткие пружины не разлетались
+    var sub=4, h=dt/sub;
+    for(var j=0;j<sub;j++){
+      var a=-k*(s.x-s.target)-c*s.v;
+      s.v+=a*h; s.x+=s.v*h;
+    }
+    if(Math.abs(s.v)<s.eps&&Math.abs(s.x-s.target)<s.eps){
+      s.x=s.target; s.v=0; s.active=false; SPRINGS.splice(i,1);
+      s.on(s.x); if(s.onRest){var f=s.onRest;s.onRest=null;f();}
+    }else s.on(s.x);
+  }
+  if(SPRINGS.length)RAF=requestAnimationFrame(tickAll); else lastT=0;
+}
+// проекция импульса - куда долетит жест (как у скролла)
+function project(v,rate){rate=rate||0.998;return (v/1000)*rate/(1-rate);}
+function rubberband(over,dim,c){c=c||0.55;return (over*dim*c)/(dim+c*Math.abs(over));}
+
+// ============================================================
+// Отклик на нажатие - на pointer-down, а не на отпускание
+// ============================================================
+document.addEventListener('pointerdown',function(e){
+  var t=e.target.closest('.press,.head,.tot.clickable,.btn,.totop');
+  if(!t||e.button)return;
+  t.classList.add('is-down');
+  var up=function(){t.classList.remove('is-down');window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);};
+  window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
+});
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
+function pct(a,b){return b?Math.round(a/b*100):0;}
+function fname(n){return esc(n).split(' | ').join('<span class="sep">|</span>');}
+function bmk(w){return (w!=null&&w>0&&w<100)?'<i class="bmk" style="left:'+w+'%"></i>':'';}
+function bench(v,p,suffix,ok){
+  if(p==null)return '<span class="cbench num">'+v+suffix+'</span>';
+  var c=ok?(v>=p?' good':(v<0.7*p?' bad':' mid')):' pale';
+  return '<span class="cbench num'+c+'">'+v+'% · ср '+p+'%</span>';
+}
+function vpill(f){return '<span class="pill '+esc(f.verdict)+'" data-tip="'+esc(VDEF[f.verdict]||'')+'">'+esc(f.vtext||VNAME[f.verdict]||'')+'</span>';}
+
+// ---------- загрузка ----------
+var LOADER_HTML='<div class="loader"><div class="lcard"><span class="spin" aria-hidden="true">'+
+  Array.apply(null,Array(8)).map(function(_,i){return '<i style="transform:rotate('+(i*45)+'deg);animation-delay:'+(-1+i*0.125)+'s"></i>';}).join('')+
+  '</span><div class="ltitle">Собираем статистику</div><div class="lsub" id="lsub">Тянем свежий прогон…</div></div>'+
+  '<div class="skel"><div class="sk t"></div><div class="sk r"></div></div></div>';
+var LSTEPS=['Тянем свежий прогон…','Считаем конверсии…','Раскладываем исходы…'];
+var lstep=null;
+function spinLoader(){
+  var i=0,el=document.getElementById('lsub');
+  clearInterval(lstep); if(!el)return;
+  lstep=setInterval(function(){
+    i=(i+1)%LSTEPS.length; el.style.opacity=0;
+    setTimeout(function(){el.textContent=LSTEPS[i];el.style.opacity=1;},260);
+  },1400);
+}
+function showLoader(){var app=document.getElementById('app');app.classList.remove('loaded');app.innerHTML=LOADER_HTML;spinLoader();}
+function emptyIcon(){return '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="8" width="32" height="28" rx="6"/><path d="M14 28v-6M22 28V16M30 28v-3"/></svg>';}
+function showError(msg){
+  clearInterval(lstep);
+  var app=document.getElementById('app');
+  app.classList.add('loaded');
+  app.innerHTML='<div class="empty">'+emptyIcon()+'<div class="etitle">Не удалось загрузить данные</div><div class="esub">'+esc(msg)+'. Проверьте связь и повторите.</div><button class="btn" id="retry" type="button">Повторить</button></div>';
+  document.getElementById('meta').textContent='Нет связи';
+  document.getElementById('navmeta').textContent='';
+  var st=document.getElementById('stale');st.hidden=true;st.innerHTML='';
+  document.getElementById('retry').addEventListener('click',function(){showLoader();boot();});
+}
+function boot(){
+  if(location.search.indexOf('demo')>-1){setTimeout(function(){clearInterval(lstep);render(DEMO);},900);return;}
+  fetch(DATA_URL,{cache:'no-store'})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(d){clearInterval(lstep);render(d);})
+    .catch(function(e){showError(e.message||'неизвестная ошибка');});
+}
+
+// ---------- время последнего прогона ----------
+function parseUpd(v){
+  if(!v)return null;
+  var s=String(v).trim(),m;
+  m=s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})(?:[\s,]+(\d{1,2}):(\d{2}))?/);
+  if(m)return new Date(+m[3],+m[2]-1,+m[1],m[4]?+m[4]:12,m[5]?+m[5]:0);
+  m=s.match(/^(\d{1,2})[.\/](\d{1,2})(?:[\s,]+(\d{1,2}):(\d{2}))?$/);
+  if(m)return new Date((new Date()).getFullYear(),+m[2]-1,+m[1],m[3]?+m[3]:12,m[4]?+m[4]:0);
+  var d=new Date(s); return isNaN(d.getTime())?null:d;
+}
+function plural(n,a,b,c){var d=n%10,h=n%100;return (d==1&&h!=11)?a:((d>=2&&d<=4&&(h<10||h>=20))?b:c);}
+function ago(dt){
+  var s=Math.floor((Date.now()-dt.getTime())/1000); if(s<0)s=0;
+  if(s<120)return 'только что';
+  if(s<3600){var mi=Math.round(s/60);return mi+' '+plural(mi,'минуту','минуты','минут')+' назад';}
+  if(s<86400){var h=Math.round(s/3600);return h+' '+plural(h,'час','часа','часов')+' назад';}
+  var dd=Math.floor(s/86400); if(dd===1)return 'вчера';
+  return dd+' '+plural(dd,'день','дня','дней')+' назад';
+}
+function paintMeta(){
+  var d=LAST_D;if(!d)return;
+  var upd=parseUpd(d.updated),chip='',st=document.getElementById('stale');
+  if(upd){var h=(Date.now()-upd.getTime())/3600000;chip='<span class="fresh'+(h<12?'':(h<24?' mid':' old'))+'">'+ago(upd)+'</span>';}
+  document.getElementById('meta').innerHTML='<span>Обновлено <b>'+esc(d.updated)+'</b></span>'+chip;
+  document.getElementById('navmeta').textContent=upd?ago(upd):'';
+  if(upd&&Date.now()-upd.getTime()>86400000){
+    st.hidden=false;
+    st.innerHTML='<i>!</i><span>Данные старше суток: последний прогон <b>'+esc(d.updated)+'</b> ('+ago(upd)+'). Похоже, вечерний прогон не прошёл - цифры ниже устарели.</span>';
+  }else{st.hidden=true;st.innerHTML='';}
+}
+setInterval(paintMeta,60000);
+
+// ---------- навбар появляется, когда крупный тайтл уходит под него ----------
+function initNav(){
+  var nav=document.getElementById('nav'),h1=document.querySelector('.large h1');
+  if(!('IntersectionObserver' in window))return;
+  new IntersectionObserver(function(es){
+    var on=!es[0].isIntersecting&&es[0].boundingClientRect.top<0;
+    if(on&&!nav.classList.contains('show'))setTimeout(function(){window.dispatchEvent(new Event('nav-shown'));},20);
+    nav.classList.toggle('show',on); nav.setAttribute('aria-hidden',!on);
+  },{rootMargin:'-52px 0px 0px 0px',threshold:0}).observe(h1);
+}
+
+// ---------- поповер-подсказка: растёт из якоря ----------
+var TIP=null,tipSp=null,tipAnchor=null;
+function initTip(){
+  if(window.matchMedia&&!matchMedia('(hover: hover)').matches)return;
+  TIP=document.createElement('div');TIP.className='tip';document.body.appendChild(TIP);
+  tipSp=new Spring(0,function(p){
+    TIP.style.opacity=Math.max(0,Math.min(1,p));
+    TIP.style.transform='scale('+(0.9+0.1*p)+') translateY('+(4*(1-p))+'px)';
+  },{response:0.28,damping:1,eps:0.002});
+  document.addEventListener('mouseover',function(e){
+    var t=e.target.closest?e.target.closest('[data-tip]'):null;
+    if(!t){if(tipAnchor){tipAnchor=null;tipSp.set(0);}return;}
+    if(t===tipAnchor)return;
+    tipAnchor=t;
+    TIP.textContent=t.getAttribute('data-tip');
+    var r=t.getBoundingClientRect();
+    TIP.style.transform='none';
+    var b=TIP.getBoundingClientRect();
+    var left=Math.max(8,Math.min(r.left+r.width/2-b.width/2,window.innerWidth-b.width-8));
+    var top=r.top-b.height-10, below=false;
+    if(top<8){top=r.bottom+10;below=true;}
+    TIP.style.left=left+'px';TIP.style.top=top+'px';
+    // transform-origin - точка на поповере, ближайшая к триггеру
+    TIP.style.transformOrigin=(r.left+r.width/2-left)+'px '+(below?'0':'100%');
+    tipSp.jump(Math.max(tipSp.x,0)); tipSp.set(1);
+  });
+  window.addEventListener('scroll',function(){if(tipAnchor){tipAnchor=null;tipSp.set(0);}},{passive:true});
+}
+
+// ---------- кнопка наверх ----------
+function initUp(){
+  var b=document.createElement('button');
+  b.className='totop';b.type='button';b.setAttribute('aria-label','Наверх');
+  b.innerHTML='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>';
+  document.body.appendChild(b);
+  b.addEventListener('click',function(){window.scrollTo({top:0,behavior:RM?'auto':'smooth'});});
+  window.addEventListener('scroll',function(){b.classList.toggle('show',window.pageYOffset>450);},{passive:true});
+}
+
+// ============================================================
+// ШИТ со списком встреч. Десктоп: материализуется из центра (масштаб + блюр).
+// Мобила: выезжает снизу, тянется 1:1 за пальцем, рубербенд сверху,
+// на отпускании - проекция импульса и пружина с переданной скоростью.
+// ============================================================
+var SHEET={open:false,isMobile:function(){return window.innerWidth<=700;}};
+function initSheet(){
+  var sheet=document.getElementById('sheet'),scrim=document.getElementById('scrim'),body=document.getElementById('sbody');
+  var H=function(){return sheet.getBoundingClientRect().height||400;};
+  // p: 1 = открыт, 0 = закрыт. Единое значение для обеих презентаций.
+  var sp=new Spring(0,function(p){
+    p=Math.min(1.25,p);
+    scrim.style.opacity=Math.max(0,Math.min(1,p))*1;
+    if(SHEET.isMobile()){
+      sheet.style.opacity=p>0.01?1:0;
+      sheet.style.filter='';
+      sheet.style.transform='translateY('+((1-p)*H())+'px)';
+      var pp=Math.max(0,Math.min(1,p)),W=document.querySelector('.wrap');
+      if(W){W.style.transformOrigin='50% 0'; W.style.borderRadius=(pp*14)+'px'; W.style.overflow=pp>0.01?'hidden':''; W.style.transform=pp>0.01?'scale('+(1-0.045*pp)+') translateY('+(pp*10)+'px)':'';}
+    }else{
+      var W2=document.querySelector('.wrap'); if(W2&&W2.style.transform){W2.style.transform='';W2.style.borderRadius='';W2.style.overflow='';}
+      var pp=Math.max(0,Math.min(1,p));
+      sheet.style.opacity=pp;
+      sheet.style.transform='translate(-50%,-50%) scale('+(0.94+0.06*pp)+')';
+      sheet.style.filter=pp<0.98?'blur('+(6*(1-pp))+'px)':'';
+    }
+  },{response:0.32,damping:1,eps:0.002});
+  SHEET.sp=sp;
+  function setOn(on){sheet.classList.toggle('on',on);scrim.classList.toggle('on',on);sheet.setAttribute('aria-hidden',!on);}
+  SHEET.show=function(){
+    SHEET.open=true; setOn(true);
+    sp.set(1,{response:0.34,damping:1});
+    document.getElementById('sclose').focus({preventScroll:true});
+  };
+  SHEET.hide=function(o){
+    o=o||{}; SHEET.open=false;
+    sp.set(0,{response:o.response||0.3,damping:o.damping!=null?o.damping:1,velocity:o.velocity,onRest:function(){setOn(false);}});
+  };
+  scrim.addEventListener('click',function(){SHEET.hide();});
+  document.getElementById('sclose').addEventListener('click',function(){SHEET.hide();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&SHEET.open)SHEET.hide();});
+
+  // --- жест перетаскивания (только снизу, на мобиле) ---
+  var drag=null;
+  sheet.addEventListener('pointerdown',function(e){
+    if(!SHEET.isMobile()||e.button)return;
+    // если контент прокручен - отдаём скролл контенту
+    if(body.contains(e.target)&&body.scrollTop>0)return;
+    drag={id:e.pointerId,y0:e.clientY,p0:sp.x,hist:[[e.clientY,performance.now()]],moved:false};
+    sheet.setPointerCapture(e.pointerId);
+    // перехват: замораживаем пружину на текущем значении
+    sp.onRest=null; sp.jump(sp.x); sp.target=sp.x; SHEET.open=true;
+  });
+  sheet.addEventListener('pointermove',function(e){
+    if(!drag||e.pointerId!==drag.id)return;
+    var dy=e.clientY-drag.y0, h=H();
+    if(!drag.moved&&Math.abs(dy)<8)return;   // гистерезис
+    drag.moved=true;
+    var now=performance.now();
+    drag.hist.push([e.clientY,now]); while(drag.hist.length>6)drag.hist.shift();
+    var p=drag.p0-dy/h;
+    if(p>1)p=1+rubberband(p-1,1,0.45);   // выше верха - сопротивление
+    sp.x=p; sp.target=p; sp.on(p);
+    if(body.scrollTop>0)body.scrollTop=0;
+    e.preventDefault();
+  },{passive:false});
+  function release(e){
+    if(!drag||e.pointerId!==drag.id)return;
+    var d=drag; drag=null;
+    if(!d.moved)return;
+    var h=H(),a=d.hist[0],b=d.hist[d.hist.length-1];
+    var dt=Math.max(1,b[1]-a[1]);
+    var vy=(b[0]-a[0])/dt*1000;            // px/s, вниз положительно
+    var vp=-vy/h;                           // скорость в единицах p
+    var projected=sp.x+project(vy)/h*-1;    // куда долетит, если отпустить
+    // решаем по знаку скорости, если она заметна, иначе по проекции
+    var close=Math.abs(vy)>250?vy>0:projected<0.5;
+    if(close)SHEET.hide({velocity:vp,damping:0.8,response:0.3});
+    else{SHEET.open=true;sp.set(1,{velocity:vp,damping:0.8,response:0.3});}
+  }
+  sheet.addEventListener('pointerup',release);
+  sheet.addEventListener('pointercancel',release);
+  window.addEventListener('resize',function(){if(!SHEET.open)sp.jump(0);else sp.jump(1);});
+}
+function fillSheet(list){
+  var body=document.getElementById('sbody');
+  document.getElementById('sheet-cnt').textContent=list.length;
+  body.innerHTML='<div class="group">'+list.map(function(m){
+    return '<div class="mitem"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+esc(m.funnel||'')+(m.where?' · '+esc(m.where):'')+'</div>'+(m.url?'<a class="mlink" href="'+esc(m.url)+'" target="_blank" rel="noopener">'+(m.url.indexOf('linkedin.com/in/')>-1?'Профиль в LinkedIn':'Открыть переписку')+' ›</a>':'')+'</div>';
+  }).join('')+'</div>';
+}
+
+// ============================================================
+// Сегментированный контрол: бегунок едет пружиной к выбранному сегменту
+// ============================================================
+function initSeg(seg,onChange,startVal){
+  var thumb=seg.querySelector('.thumb'),btns=[].slice.call(seg.querySelectorAll('button'));
+  var x=new Spring(0,function(v){thumb.style.transform='translateX('+v+'px)';},{response:0.32,damping:1,eps:0.1});
+  var w=new Spring(40,function(v){thumb.style.width=v+'px';},{response:0.32,damping:1,eps:0.1});
+  function place(b,imm){
+    var r=b.getBoundingClientRect(),s=seg.getBoundingClientRect();
+    if(!r.width)return;
+    x.set(r.left-s.left-2,{immediate:imm}); w.set(r.width,{immediate:imm});
+  }
+  var cur=btns[0];
+  if(startVal){btns.forEach(function(b){if(b.dataset.v===startVal)cur=b;});}
+  btns.forEach(function(b){b.setAttribute('aria-pressed',b===cur?'true':'false');});
+  function select(b,silent){
+    if(b===cur)return;
+    cur.setAttribute('aria-pressed','false'); cur=b; b.setAttribute('aria-pressed','true');
+    place(b,false); if(!silent)onChange(b.dataset.v);
+  }
+  btns.forEach(function(b){b.addEventListener('click',function(){select(b,false);});});
+  requestAnimationFrame(function(){place(cur,true);});
+  window.addEventListener('resize',function(){place(cur,true);});
+  return {sync:function(v){btns.forEach(function(b){if(b.dataset.v===v)select(b,true);});},place:function(){place(cur,true);}};
+}
+
+// ============================================================
+// ТЕМА. Три состояния как в футере developer.apple.com: светлая / тёмная / авто.
+// Авто слушает системную настройку и переключается на лету.
+// ============================================================
+function initTheme(){
+  var saved=null;
+  try{saved=localStorage.getItem('theme');}catch(e){}
+  var mode=(saved==='light'||saved==='dark')?saved:'auto';
+  function apply(v){
+    if(v==='auto')document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme',v);
+    try{v==='auto'?localStorage.removeItem('theme'):localStorage.setItem('theme',v);}catch(e){}
+  }
+  apply(mode);
+  var segs=[].slice.call(document.querySelectorAll('.themeseg')).map(function(el){
+    return initSeg(el,function(v){mode=v;apply(v);segs.forEach(function(o){o.sync(v);});},mode);
+  });
+  // navbar появляется позже - его бегунок надо доразместить, когда капсула станет видимой
+  window.addEventListener('nav-shown',function(){segs.forEach(function(o){o.place();});});
+}
+
+initTheme();spinLoader();initTip();initUp();initNav();initSheet();showLoader();boot();
+
+// ============================================================
+// РЕНДЕР
+// ============================================================
+function render(d){
+  var app=document.getElementById('app');
+  LAST_D=d;
+  app.classList.add('loaded');
+  if(!d||!d.funnels||!d.funnels.length){
+    document.getElementById('meta').textContent='';
+    app.innerHTML='<div class="empty">'+emptyIcon()+'<div class="etitle">Данных ещё нет</div><div class="esub">Появятся после первого прогона garna_stats</div></div>';
+    return;
+  }
+  paintMeta();
+
+  var t=d.totals||{};
+  var html='<div class="group totals">'
+    +tot('Коннектов отправлено',t.sent,'',false,'Инвайты, отправленные за период по всем воронкам @rbl')
+    +tot('Принято',t.acc,t.acc_pct!=null?t.acc_pct+'%':'',false,'Приняли инвайт. Процент - от отправленных')
+    +tot('Ответили',t.rep,t.rep_pct!=null?t.rep_pct+'%':'',false,'Написали хоть что-то в ответ. Процент - от принявших')
+    +tot('Positive-доля',(t.pos_share!=null?t.pos_share+'%':'-'),'',true,'(встречи + интерес + рефералка) от всех ответов')
+    +totMeet(t.meetings,d.meetings_list)
+    +'</div>';
+
+  // счётчики по вердиктам для сегментов
+  var cnt={all:d.funnels.length,dev:0,fix:0,stop:0,low:0};
+  d.funnels.forEach(function(f){if(cnt[f.verdict]!=null)cnt[f.verdict]++;});
+  html+='<div class="segwrap"><div class="seg" id="seg" role="group" aria-label="Фильтр по вердикту"><span class="thumb" aria-hidden="true"></span>'
+    +'<button type="button" data-v="all" aria-pressed="true">Все <span class="cnt num">'+cnt.all+'</span></button>'
+    +['dev','fix','stop','low'].map(function(k){return '<button type="button" data-v="'+k+'" aria-pressed="false"><i style="background:'+VCOLOR[k]+'"></i>'+VNAME[k]+' <span class="cnt num">'+cnt[k]+'</span></button>';}).join('')
+    +'</div>'+(d.period?'<span class="period">Период '+esc(d.period)+'</span>':'')+'</div>';
+
+  html+='<div class="gh" style="margin-top:14px"><span>Воронки</span><span class="hint">слева воронка коннектов, справа качество ответов</span></div><div class="group" id="rows"></div>';
+  html+='<div class="empty" id="noneEmpty" hidden style="margin-top:0;padding:28px"><div class="esub">Под этот вердикт воронок нет</div></div>';
+  html+='<div class="legend">'+OUTCOMES.map(function(o){return '<span data-tip="'+esc(DEFS[o.k])+'"><i style="background:'+o.c+'"></i>'+o.name+'</span>';}).join('')+'</div>';
+  html+='<div class="gh"><span>Справка</span></div><div class="group">';
+  html+='<details class="defs"><summary>Что значат исходы</summary><div class="defsbody">'+OUTCOMES.map(function(o){return '<div class="defrow"><i style="background:'+o.c+'"></i><b>'+o.name+'</b> - '+DEFS[o.k]+'</div>';}).join('')+'</div></details>';
+  html+='<details class="defs"><summary>Как читаются вердикты</summary><div class="defsbody">'
+    +'<div class="vrow"><span class="pill dev">Развивать</span><span>positive-доля от 40% и верх воронки не хуже среднего по воронкам - можно лить больше</span></div>'
+    +'<div class="vrow"><span class="pill fix">Чинить</span><span>конкретное звено заметно ниже среднего по воронкам (нота и аудитория, msg1 или оффер) либо positive-доля 15-40%</span></div>'
+    +'<div class="vrow"><span class="pill stop">Тормозить</span><span>провал на объёме: positive-доля ниже 15% или акцепт вдвое ниже среднего при 100+ отправках</span></div>'
+    +'<div class="vrow"><span class="pill low">Набирает</span><span>выборки пока не хватает для вывода</span></div>'
+    +'<div class="vnote">Вердикт ставится по худшему из звеньев, где хватает выборки: акцепт от 30 отправок, реплай от 10 принявших, качество от 5 ответов; по 3-4 ответам - предварительно. Ниже этих порогов сравнение со средним показывается серым и в вердикт не идёт.</div>'
+    +'<div class="vnote">Positive-доля = (встречи + интерес + рефералка) / все ответы. «Ср» в каскаде - средневзвешенное по всем воронкам за период: суммарные акцепты к суммарным отправкам и суммарные ответы к суммарным акцептам. Качество размечается тегами в прогонах разбора инбокса, источник цифр - аналитика GetSales.</div>'
+    +(d.coverage?'<div class="vnote">Разметка исходов: покрытие '+esc(d.coverage)+'.</div>':'')
+    +'</div></details></div>';
+  app.innerHTML=html;
+
+  var rowsEl=document.getElementById('rows');
+  var fills=[]; // [el, targetPct, spring]
+  function barSpring(el,prop){
+    var s=new Spring(0,function(v){el.style[prop]=v+'%';},{response:0.7,damping:1,eps:0.05});
+    return s;
+  }
+
+  d.funnels.forEach(function(f,fidx){
+    var o=f.o||{}; OUTCOMES.forEach(function(x){o[x.k]=o[x.k]||0;});
+    var pos=o.meeting+o.positive+o.referral;
+    var posShare=pct(pos,f.rep);
+    var wrap=document.createElement('div'); wrap.className='rowwrap'; wrap.dataset.v=f.verdict;
+    var row=document.createElement('div'); row.className='row';
+    var h='';
+    h+='<button class="head" aria-expanded="false">';
+    var prog=(f.base?pct(f.sent,f.base):null);
+    var progCls=(prog==null?'':(prog>=80?' hi':(prog<30?' lo':'')));
+    var progChip=(prog==null?'':'<span class="fprog num'+progCls+'" data-tip="Обработано '+f.sent+' из '+f.base+' контактов базы">'+prog+'%</span>');
+    h+='<span><span class="fname">'+fname(f.name)+progChip+'</span></span>';
+    h+='<span><span class="bar" data-tip="Отправлено '+f.sent+' → приняли '+f.acc+' ('+pct(f.acc,f.sent)+'%) → ответили '+f.rep+' ('+pct(f.rep,f.acc)+'% от принявших)"><span class="fill acc" data-w="'+pct(f.acc,f.sent)+'"></span><span class="fill rep" data-w="'+pct(f.rep,f.sent)+'"></span></span>';
+    h+='<span class="nums num"><span>отпр <b>'+f.sent+'</b></span><span>прин <b>'+f.acc+'</b> · '+pct(f.acc,f.sent)+'%</span><span>отв <b>'+f.rep+'</b> · '+pct(f.rep,f.acc)+'%</span></span></span>';
+    h+='<span><span class="stack">'+OUTCOMES.map(function(x){return '<i style="background:'+x.c+'" data-fb="'+(f.rep?o[x.k]/f.rep*100:0)+'" data-tip="'+x.name+' · '+o[x.k]+' из '+f.rep+' ('+pct(o[x.k],f.rep)+'% ответов)"></i>';}).join('')+'</span>';
+    h+='<span class="posline num">positive <b>'+posShare+'%</b>'+(f.note?' · '+esc(f.note):'')+'</span></span>';
+    h+='<span class="verdict">'+vpill(f)+'</span>';
+    h+='<span class="chev" aria-hidden="true"></span></button>';
+    h+='<div class="detail"><div class="dwrap">';
+    h+='<div class="dverdict">'+vpill(f)+'<span class="dwhy">'+esc(f.why)+'</span></div>';
+    var pACC=(t.acc_pct!=null?t.acc_pct:null), pRR=(t.rep_pct!=null?t.rep_pct:null), pPS=(t.pos_share!=null?t.pos_share:null);
+    var accP=pct(f.acc,f.sent), repP=pct(f.rep,f.acc);
+    var weak='';
+    if(pACC&&f.sent>=30&&accP<0.7*pACC)weak='acc';
+    else if(pRR&&f.acc>=10&&repP<0.7*pRR)weak='rep';
+    else if(f.rep>=5&&posShare<40)weak='q';
+    var wbadge='<span class="weakbadge">узкое место</span>';
+    var scale=(f.base?f.base:f.sent);
+    h+='<div class="dcol"><div class="dh">Каскад воронки'+((weak==='acc'||weak==='rep')?wbadge:'')+'</div>';
+    if(f.base){
+      h+='<div class="cline" data-tip="Всего контактов залито в воронку: '+f.base+'"><span class="clbl">база</span><span class="bar"><span class="fill" style="background:var(--fill)" data-w="100"></span></span><span class="cnum num">'+f.base+'</span><span class="cbench">залито</span></div>';
+    }
+    h+='<div class="cline" data-tip="'+(f.base?('Отправлено '+f.sent+' из '+f.base+' контактов базы ('+pct(f.sent,f.base)+'%)'):('Отправлено инвайтов: '+f.sent))+'"><span class="clbl">отправлено</span><span class="bar"><span class="fill" style="background:var(--label4)" data-w="'+(f.base?pct(f.sent,f.base):100)+'"></span></span><span class="cnum num">'+f.sent+'</span><span class="cbench num">'+(f.base?pct(f.sent,f.base)+'% базы':'вся база')+'</span></div>';
+    h+='<div class="cline'+(weak==='acc'?' weak':'')+'" data-tip="Приняли инвайт: '+f.acc+' - '+accP+'% от отправленных'+(pACC!=null?', среднее по воронкам '+pACC+'%':'')+(f.sent<30?'. Выборки мало для сравнения - нужно от 30 отправок':'')+'"><span class="clbl">принято</span><span class="bar"><span class="fill acc" data-w="'+pct(f.acc,scale)+'"></span>'+bmk(pACC!=null?pct(Math.round(f.sent*pACC/100),scale):null)+'</span><span class="cnum num">'+f.acc+'</span>'+bench(accP,pACC,'% отпр',f.sent>=30)+'</div>';
+    h+='<div class="cline'+(weak==='rep'?' weak':'')+'" data-tip="Ответили: '+f.rep+' - '+repP+'% от принявших'+(pRR!=null?', среднее по воронкам '+pRR+'%':'')+(f.acc<10?'. Выборки мало для сравнения - нужно от 10 принявших':'')+'"><span class="clbl">ответили</span><span class="bar"><span class="fill rep" data-w="'+pct(f.rep,scale)+'"></span>'+bmk(pRR!=null?pct(Math.round(f.acc*pRR/100),scale):null)+'</span><span class="cnum num">'+f.rep+'</span>'+bench(repP,pRR,'% прин',f.acc>=10)+'</div></div>';
+    h+='<div class="dcol"><div class="dh">Исходы ответов'+(weak==='q'?wbadge:'')+'</div>';
+    h+=OUTCOMES.map(function(x){var n=o[x.k];return '<div class="oline'+(n?'':' zero')+'" data-tip="'+esc(x.name+' - '+DEFS[x.k])+'"><span class="olbl"><i style="background:'+x.c+'"></i>'+x.name+'</span><span class="bar"><span class="fill" style="background:'+x.c+'" data-w="'+(f.rep?n/f.rep*100:0)+'"></span></span><span class="onum num">'+n+'<small>'+pct(n,f.rep)+'%</small></span></div>';}).join('');
+    if(f.rep){
+      var negN=o.neutral+o.refused+o.optout;
+      h+='<div class="osum">'
+        +'<div class="os pos" data-tip="Встречи, интерес и рефералки - главная метрика качества"><b class="num">'+pos+'</b><span>positive '+posShare+'%'+(pPS!=null?' · ср '+pPS+'%':'')+'</span></div>'
+        +'<div class="os def" data-tip="Перенос по времени, не отказ - тёплая база для ретача"><b class="num">'+o.deferred+'</b><span>отложено '+pct(o.deferred,f.rep)+'%</span></div>'
+        +'<div class="os neg" data-tip="Нейтральные, отказы и опт-ауты"><b class="num">'+negN+'</b><span>не сработало '+pct(negN,f.rep)+'%</span></div>'
+        +'</div>';
+      if(f.rep>=5&&pct(o.deferred,f.rep)>=30){
+        h+='<div class="ohint">Отложенный спрос: '+o.deferred+' лидов ждут ретача - планировать возврат</div>';
+      }
+    }
+    h+='</div>';
+    if(f.uuid){
+      h+='<div class="flink"><span class="uuid">'+esc(f.uuid.slice(0,8))+'</span><a class="btn tint press" href="https://amazing.getsales.io/flow/'+esc(f.uuid)+'/builder" target="_blank" rel="noopener">Открыть в GetSales ›</a></div>';
+    }
+    h+='</div></div>';
+    row.innerHTML=h;
+    wrap.appendChild(document.createElement('div')).appendChild(row);
+    rowsEl.appendChild(wrap);
+
+    // --- раскрытие: высота пружиной от текущего значения, перехватываемо ---
+    var head=row.querySelector('.head'),detail=row.querySelector('.detail'),dwrap=row.querySelector('.dwrap');
+    var hsp=new Spring(0,function(v){detail.style.height=v+'px';},{response:0.36,damping:1,eps:0.3});
+    var dfills=[].slice.call(detail.querySelectorAll('.fill')).map(function(el){return {el:el,sp:barSpring(el,'width'),w:+el.dataset.w};});
+    head.addEventListener('click',function(){
+      var open=!row.classList.contains('open');
+      row.classList.toggle('open',open); head.setAttribute('aria-expanded',open);
+      if(open){
+        // открываем с текущей высоты (если закрытие ещё шло - просто разворачиваем движение)
+        if(detail.style.height==='auto')hsp.jump(dwrap.offsetHeight);
+        hsp.set(dwrap.offsetHeight,{onRest:function(){if(row.classList.contains('open'))detail.style.height='auto';}});
+        dfills.forEach(function(f,i){setTimeout(function(){f.sp.set(f.w);},60+i*25);});
+      }else{
+        if(detail.style.height==='auto')hsp.jump(dwrap.offsetHeight);
+        hsp.set(0);
+        dfills.forEach(function(f){f.sp.set(0,{response:0.3});});
+      }
+    });
+    // ресайз при открытом - подгоняем высоту
+    window.addEventListener('resize',function(){if(row.classList.contains('open')&&detail.style.height!=='auto')detail.style.height=dwrap.offsetHeight+'px';});
+
+    // полоски в шапке - пружина с лёгким стаггером
+    [].slice.call(head.querySelectorAll('.fill')).forEach(function(el){fills.push([barSpring(el,'width'),+el.dataset.w,fidx]);});
+    [].slice.call(head.querySelectorAll('.stack i')).forEach(function(el){fills.push([barSpring(el,'flexBasis'),+el.dataset.fb,fidx]);});
+  });
+
+  requestAnimationFrame(function(){
+    fills.forEach(function(f){setTimeout(function(){f[0].set(f[1]);},Math.min(f[2],8)*40);});
+  });
+
+  // строки проявляются, когда доезжают до экрана
+  if('IntersectionObserver' in window&&!RM){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+    },{rootMargin:'0px 0px -8% 0px',threshold:0.05});
+    [].slice.call(rowsEl.children).forEach(function(w,i){var rr=w.querySelector('.row'); if(rr){rr.style.transitionDelay=(Math.min(i,6)*35)+'ms';} io.observe(w);});
+    setTimeout(function(){[].slice.call(rowsEl.children).forEach(function(w){w.classList.add('in');});},1800);
+  }else{
+    [].slice.call(rowsEl.children).forEach(function(w){w.classList.add('in');});
+  }
+
+  // фильтр по вердикту
+  initSeg(document.getElementById('seg'),function(v){
+    var any=false;
+    [].slice.call(rowsEl.children).forEach(function(w){var on=(v==='all'||w.dataset.v===v);w.classList.toggle('hide',!on);if(on)any=true;});
+    document.getElementById('noneEmpty').hidden=any;
+    rowsEl.style.display=any?'':'none';
+  });
+
+  // встречи
+  var mtot=document.getElementById('tot-meetings');
+  if(d.meetings_list&&d.meetings_list.length&&mtot){
+    fillSheet(d.meetings_list);
+    mtot.addEventListener('click',function(){SHEET.show();});
+  }
+}
+function totMeet(val,list){
+  var has=list&&list.length;
+  return '<button type="button" class="tot hero'+(has?' clickable':'')+'" id="tot-meetings"'+(has?' data-tip="Список встреч со ссылками на профили"':' disabled')+'><div class="lbl">Встреч назначено</div><div class="val num">'+(val==null?'-':val)+'</div>'+(has?'<span class="more" aria-hidden="true">›</span>':'')+'</button>';
+}
+function tot(lbl,val,small,hero,tip){
+  return '<div class="tot'+(hero?' hero':'')+'"'+(tip?' data-tip="'+esc(tip)+'"':'')+'><div class="lbl">'+lbl+'</div><div class="val num">'+(val==null?'-':val)+(small?'<small>'+small+'</small>':'')+'</div></div>';
+}
+
+// ---------- демо-данные для локального просмотра (?demo) ----------
+var DEMO=(function(){
+  var now=new Date(),p=function(n){return (n<10?'0':'')+n;};
+  var upd=p(now.getDate())+'.'+p(now.getMonth()+1)+'.'+now.getFullYear()+' '+p(now.getHours())+':'+p(now.getMinutes());
+  return {
+    updated:upd, period:'01.08 - 19.08', coverage:'92% ответов размечено',
+    totals:{sent:1240,acc:372,acc_pct:30,rep:118,rep_pct:32,pos_share:41,meetings:7},
+    meetings_list:[
+      {name:'Anna K.',funnel:'Gamescom | Indie EOR',where:'Gamescom, 27.08',url:'https://www.linkedin.com/in/example1'},
+      {name:'Tom R.',funnel:'CoR | EU studios',where:'Zoom',url:'https://www.linkedin.com/in/example2'},
+      {name:'Lukas M.',funnel:'Gamescom | Publishers',where:'Gamescom, 26.08'},
+      {name:'Priya S.',funnel:'EOR | Global SMB',where:'Zoom',url:'https://amazing.getsales.io/'},
+      {name:'Daniel O.',funnel:'CoR | EU studios',where:'Meet'},
+      {name:'Mei L.',funnel:'Gamescom | Indie EOR',where:'Gamescom, 28.08'},
+      {name:'Sofia B.',funnel:'EOR | Global SMB',where:'Zoom'}
+    ],
+    funnels:[
+      {name:'Gamescom | Indie EOR',uuid:'9a4b2c1d-1111-4a2b-9c3d-aaaaaaaaaaaa',base:520,sent:418,acc:142,rep:48,verdict:'dev',vtext:'Развивать',why:'Акцепт 34% и реплай 34% - выше среднего по парку, positive-доля 52%. Можно лить больше базы.',o:{meeting:4,positive:15,referral:6,deferred:9,neutral:8,refused:5,optout:1}},
+      {name:'CoR | EU studios',uuid:'9a4b2c1d-2222-4a2b-9c3d-bbbbbbbbbbbb',base:380,sent:342,acc:96,rep:31,verdict:'fix',vtext:'Чинить',why:'Акцепт 28% в норме, но реплай 32% при positive-доле 29% - слабое звено msg1 или оффер.',o:{meeting:2,positive:5,referral:2,deferred:11,neutral:6,refused:4,optout:1}},
+      {name:'Gamescom | Publishers',uuid:'9a4b2c1d-3333-4a2b-9c3d-cccccccccccc',base:210,sent:198,acc:38,rep:14,verdict:'stop',vtext:'Тормозить',why:'Акцепт 19% - вдвое ниже среднего при 198 отправках, positive-доля 14%. Переложить контакты.',o:{meeting:0,positive:2,referral:0,deferred:3,neutral:5,refused:3,optout:1}},
+      {name:'EOR | Global SMB',uuid:'9a4b2c1d-4444-4a2b-9c3d-dddddddddddd',base:400,sent:236,acc:78,rep:21,verdict:'dev',vtext:'Развивать',why:'Верх воронки на уровне парка, positive-доля 43%.',note:'стартовала 05.08',o:{meeting:1,positive:6,referral:2,deferred:5,neutral:4,refused:3,optout:0}},
+      {name:'CoR | LATAM pilot',uuid:'9a4b2c1d-5555-4a2b-9c3d-eeeeeeeeeeee',base:150,sent:46,acc:18,rep:4,verdict:'low',vtext:'Набирает',why:'46 отправок и 4 ответа - рано для вывода.',o:{meeting:0,positive:2,referral:0,deferred:1,neutral:1,refused:0,optout:0}}
+    ]
+  };
+})();
+</script>
+</body>
+</html>
