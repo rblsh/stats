@@ -118,7 +118,7 @@
   .defsbody{margin-top:8px;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--sub)}
   .defrow i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}
   .defrow b{color:var(--ink);font-weight:600}
-  footer{color:var(--sub);font-size:12px;margin-top:26px;border-top:1px solid var(--line);padding-top:14px;line-height:1.6}
+  .defsrow{display:flex;flex-direction:column;gap:2px;margin-top:16px;color:var(--sub);font-size:12px;line-height:1.6}
   .vrow{display:flex;gap:10px;align-items:flex-start;line-height:1.45}
   .vrow .chip{flex:none}
   .vnote{line-height:1.5;padding-top:2px}
@@ -235,20 +235,6 @@
     <div class="skrows"><div class="sk r"></div><div class="sk r"></div><div class="sk r"></div><div class="sk r"></div></div>
   </div>
 </div></div>
-<footer>
-  <details class="defs">
-    <summary>Как читаются вердикты</summary>
-    <div class="defsbody">
-      <div class="vrow"><span class="chip dev"><i class="ce">🚀</i>РАЗВИВАТЬ</span><span>positive-доля от 40% и верх воронки не хуже парка - можно лить больше</span></div>
-      <div class="vrow"><span class="chip fix"><i class="ce">🔧</i>ЧИНИТЬ</span><span>конкретное звено заметно ниже бенчмарка парка (нота и аудитория, msg1 или оффер) либо positive-доля 15-40%</span></div>
-      <div class="vrow"><span class="chip stop"><i class="ce">🛑</i>ТОРМОЗИТЬ</span><span>провал на объёме: positive-доля ниже 15% или акцепт вдвое ниже парка при 100+ отправках</span></div>
-      <div class="vrow"><span class="chip low"><i class="ce">🌱</i>НАБИРАЕТ</span><span>выборки пока не хватает для вывода</span></div>
-      <div class="vnote">Вердикт ставится по худшему из звеньев, где хватает выборки: акцепт от 30 отправок, реплай от 10 акцептов, качество от 5 ответов; по 3-4 ответам - предварительно.</div>
-      <div class="vnote">Positive-доля = (встречи + интерес + рефералка) / все ответы. Бенчмарки - средневзвешенные по всем воронкам за период. Качество размечается тегами в прогонах разбора инбокса, источник цифр - аналитика GetSales.</div>
-      <div class="vnote" id="covline"></div>
-    </div>
-  </details>
-</footer>
 </div>
 <script>
 // ЕДИНСТВЕННАЯ настройка: URL веб-приложения Apps Script (шаг 1 в DEPLOY.md)
@@ -402,8 +388,6 @@ function render(d){
     return;
   }
   paintMeta();
-  var cov=document.getElementById('covline');
-  if(cov)cov.textContent=d.coverage?('Разметка исходов: покрытие '+d.coverage+'.'):'';
 
   var t=d.totals||{};
   var html='<div class="totals">'
@@ -416,7 +400,18 @@ function render(d){
 
   html+='<h2>Воронки <span>'+(d.period?'период '+esc(d.period)+' · ':'')+'слева воронка коннектов, справа качество ответов</span></h2><div class="rows" id="rows"></div>';
   html+='<div class="legend">'+OUTCOMES.map(function(o){return '<span data-tip="'+esc(DEFS[o.k])+'"><i style="background:'+o.c+'"></i>'+o.name+'</span>';}).join('')+'</div>';
+  html+='<div class="defsrow">';
   html+='<details class="defs"><summary>Что значат исходы</summary><div class="defsbody">'+OUTCOMES.map(function(o){return '<div class="defrow"><i style="background:'+o.c+'"></i><b>'+o.name+'</b> - '+DEFS[o.k]+'</div>';}).join('')+'</div></details>';
+  html+='<details class="defs"><summary>Как читаются вердикты</summary><div class="defsbody">'
+    +'<div class="vrow"><span class="chip dev"><i class="ce">🚀</i>РАЗВИВАТЬ</span><span>positive-доля от 40% и верх воронки не хуже среднего по воронкам - можно лить больше</span></div>'
+    +'<div class="vrow"><span class="chip fix"><i class="ce">🔧</i>ЧИНИТЬ</span><span>конкретное звено заметно ниже среднего по воронкам (нота и аудитория, msg1 или оффер) либо positive-доля 15-40%</span></div>'
+    +'<div class="vrow"><span class="chip stop"><i class="ce">🛑</i>ТОРМОЗИТЬ</span><span>провал на объёме: positive-доля ниже 15% или акцепт вдвое ниже среднего при 100+ отправках</span></div>'
+    +'<div class="vrow"><span class="chip low"><i class="ce">🌱</i>НАБИРАЕТ</span><span>выборки пока не хватает для вывода</span></div>'
+    +'<div class="vnote">Вердикт ставится по худшему из звеньев, где хватает выборки: акцепт от 30 отправок, реплай от 10 принявших, качество от 5 ответов; по 3-4 ответам - предварительно. Ниже этих порогов сравнение со средним показывается серым и в вердикт не идёт.</div>'
+    +'<div class="vnote">Positive-доля = (встречи + интерес + рефералка) / все ответы. «Ср» в каскаде - средневзвешенное по всем воронкам за период: суммарные акцепты к суммарным отправкам и суммарные ответы к суммарным акцептам. Качество размечается тегами в прогонах разбора инбокса, источник цифр - аналитика GetSales.</div>'
+    +(d.coverage?'<div class="vnote">Разметка исходов: покрытие '+esc(d.coverage)+'.</div>':'')
+    +'</div></details>';
+  html+='</div>';
   app.innerHTML=html;
 
   var rowsEl=document.getElementById('rows');
