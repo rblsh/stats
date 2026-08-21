@@ -95,6 +95,15 @@
   h2{font-weight:600;font-size:17px;line-height:1.25;letter-spacing:-0.016em;margin:32px 0 14px}
   h2 span{color:var(--sub);font-weight:400;font-size:13px;letter-spacing:-0.002em;margin-left:10px}
   .rows{display:flex;flex-direction:column;gap:9px}
+  /* Остановленные воронки уезжают под разделитель: это история, а не работа */
+  .split{display:flex;align-items:center;gap:10px;margin:34px 0 5px}
+  .split .splab{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--sub)}
+  .split .spct{font-size:11px;font-weight:600;color:var(--sub2);background:var(--track);border-radius:99px;padding:1px 8px;font-variant-numeric:tabular-nums}
+  .split .spline{flex:1;height:var(--hair);background:var(--line)}
+  .sphint{font-size:11.5px;color:var(--sub2);line-height:1.4;margin:0 0 12px}
+  .row.off{background:transparent}
+  .row.off .head{opacity:.64;transition:opacity .2s}
+  .row.off:hover .head,.row.off.open .head{opacity:1}
   .row{background:var(--card);border-radius:var(--r-card);overflow:hidden;box-shadow:0 0 0 var(--hair) var(--line);transition:box-shadow .25s}
   .row:hover{box-shadow:0 0 0 var(--hair) var(--line-strong), 0 1px 3px rgba(0,0,0,.04)}
   .row.open{box-shadow:0 0 0 var(--hair) var(--petrol-soft), 0 6px 20px rgba(13,90,80,.07)}
@@ -122,6 +131,9 @@
   .chip.fix{background:var(--v-fix-bg);color:var(--v-fix)}
   .chip.stop{background:var(--v-stop-bg);color:var(--v-stop)}
   .chip.low{background:var(--v-low-bg);color:var(--v-low)}
+  /* точка полая - на расстоянии видно, что это не вердикт, а состояние */
+  .chip.off{background:var(--v-low-bg);color:var(--v-low)}
+  .chip.off::before{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
   .why{color:var(--sub);font-size:11.5px;margin-top:5px;line-height:1.35;display:block}
   .chev{width:18px;height:18px;justify-self:end;position:relative;will-change:transform}
   .chev::before{content:"";position:absolute;left:4px;top:5px;width:8px;height:8px;border-right:2px solid var(--sub);border-bottom:2px solid var(--sub);transform:rotate(45deg)}
@@ -423,6 +435,27 @@ function bench(v,p,suffix,ok){
   return '<span class="cbench'+c+'">'+v+'% · ср '+p+'%</span>';
 }
 function vchip(f){return '<span class="chip '+esc(f.verdict)+'" data-tip="'+esc(VDEF[f.verdict]||'')+'">'+esc(f.vtext)+'</span>';}
+// Остановленная воронка: строка остаётся как история, вердикт по ней не ставится.
+// Признак берём из payload; понимаем несколько написаний, чтобы старые прогоны не ломались.
+function isOff(f){
+  if(f.off===true||f.off===1||f.stopped===true||f.active===false)return true;
+  var s=String(f.status||f.state||'').toLowerCase();
+  return s==='off'||s==='stopped'||s==='paused'||s==='archived'||s==='archive';
+}
+var OFFTIP='Воронка выключена в GetSales - цифры остались как история, вердикт не ставится';
+var OFFWHY='Воронка выключена в GetSales. Цифры ниже - история на момент остановки, вердикт по ней не ставится и сравнение со средним не подсвечивается.';
+function offchip(){return '<span class="chip off" data-tip="'+OFFTIP+'">ОСТАНОВЛЕНА</span>';}
+// Планка парка, с которой сравниваются звенья. Приоритет: блок bench из прогона ->
+// пересчёт по живым воронкам -> totals (старые payload). Остановленные в планку не входят.
+function benchOf(d,live,t){
+  var b=d.bench;
+  if(b&&(b.acc_pct!=null||b.rep_pct!=null||b.pos_share!=null))
+    return {acc:(b.acc_pct!=null?b.acc_pct:null),rep:(b.rep_pct!=null?b.rep_pct:null),pos:(b.pos_share!=null?b.pos_share:null)};
+  var s=0,a=0,r=0,p=0;
+  live.forEach(function(f){var o=f.o||{};s+=f.sent||0;a+=f.acc||0;r+=f.rep||0;p+=(o.meeting||0)+(o.positive||0)+(o.referral||0);});
+  if(s&&a)return {acc:pct(a,s),rep:pct(r,a),pos:(r?pct(p,r):null)};
+  return {acc:(t.acc_pct!=null?t.acc_pct:null),rep:(t.rep_pct!=null?t.rep_pct:null),pos:(t.pos_share!=null?t.pos_share:null)};
+}
 
 
 // ---------- загрузка ----------
@@ -617,7 +650,7 @@ function render(d){
     +totMeet(t.meetings,d.meetings_list)
     +'</div>';
 
-  html+='<h2>Воронки <span>'+(d.period?'период '+esc(d.period)+' · ':'')+'слева воронка коннектов, справа качество ответов</span></h2><div class="rows" id="rows"></div>';
+  html+='<h2>Воронки <span>'+(d.period?'период '+esc(d.period)+' · ':'')+'слева воронка коннектов, справа качество ответов</span></h2><div class="rows" id="rows"></div><div id="offblock"></div>';
   html+='<div class="legend">'+OUTCOMES.map(function(o){return '<span data-tip="'+esc(DEFS[o.k])+'"><i style="background:'+o.c+'"></i>'+o.name+'</span>';}).join('')+'</div>';
   html+='<div class="defsrow">';
   html+='<details class="defs"><summary>Что значат исходы</summary><div class="defsbody">'+OUTCOMES.map(function(o){return '<div class="defrow"><i style="background:'+o.c+'"></i><b>'+o.name+'</b> - '+DEFS[o.k]+'</div>';}).join('')+'</div></details>';
@@ -626,39 +659,41 @@ function render(d){
     +'<div class="vrow"><span class="chip fix">ЧИНИТЬ</span><span>конкретное звено заметно ниже среднего по воронкам (нота и аудитория, msg1 или оффер) либо positive-доля 15-40%</span></div>'
     +'<div class="vrow"><span class="chip stop">ТОРМОЗИТЬ</span><span>провал на объёме: positive-доля ниже 15% или акцепт вдвое ниже среднего при 100+ отправках</span></div>'
     +'<div class="vrow"><span class="chip low">НАБИРАЕТ</span><span>выборки пока не хватает для вывода</span></div>'
+    +'<div class="vrow">'+offchip()+'<span>воронка выключена в GetSales - уезжает под разделитель в самый низ, цифры остаются как история, вердикт не ставится</span></div>'
     +'<div class="vnote">Вердикт ставится по худшему из звеньев, где хватает выборки: акцепт от 30 отправок, реплай от 10 принявших, качество от 5 ответов; по 3-4 ответам - предварительно. Ниже этих порогов сравнение со средним показывается серым и в вердикт не идёт.</div>'
-    +'<div class="vnote">Positive-доля = (встречи + интерес + рефералка) / все ответы. «Ср» в каскаде - средневзвешенное по всем воронкам за период: суммарные акцепты к суммарным отправкам и суммарные ответы к суммарным акцептам. Качество размечается тегами в прогонах разбора инбокса, источник цифр - аналитика GetSales.</div>'
+    +'<div class="vnote">Positive-доля = (встречи + интерес + рефералка) / все ответы. «Ср» в каскаде - средневзвешенное по ЖИВЫМ воронкам за период: суммарные акцепты к суммарным отправкам и суммарные ответы к суммарным акцептам. Остановленные воронки в планку не входят, но в сводку сверху входят. Качество размечается тегами в прогонах разбора инбокса, источник цифр - аналитика GetSales.</div>'
     +(d.coverage?'<div class="vnote">Разметка исходов: покрытие '+esc(d.coverage)+'.</div>':'')
     +'</div></details>';
   html+='</div>';
   app.innerHTML=html;
 
-  var rowsEl=document.getElementById('rows');
-  d.funnels.forEach(function(f,fidx){
+  // строку собираем одинаково, флаг off убирает из неё всё оценочное
+  function makeRow(f,off){
     var o=f.o||{}; OUTCOMES.forEach(function(x){o[x.k]=o[x.k]||0;});
     var pos=o.meeting+o.positive+o.referral;
     var posShare=pct(pos,f.rep);
     var maxO=Math.max(1,o.meeting,o.positive,o.referral,o.neutral,o.refused,o.optout);
     var row=document.createElement('div');
-    row.className='row';
+    row.className='row'+(off?' off':'');
     var h='';
     h+='<button class="head" aria-expanded="false">';
     var prog=(f.base?pct(f.sent,f.base):null);
-    var progCls=(prog==null?'':(prog>=80?' hi':(prog<30?' lo':'')));
+    var progCls=(prog==null||off?'':(prog>=80?' hi':(prog<30?' lo':'')));
     var progChip=(prog==null?'':'<span class="fprog'+progCls+'" data-tip="Обработано '+f.sent+' из '+f.base+' контактов базы">'+prog+'%</span>');
     h+='<span><span class="fname">'+fname(f.name)+progChip+'</span></span>';
     h+='<span><span class="bar" data-tip="Отправлено '+f.sent+' → приняли '+f.acc+' ('+pct(f.acc,f.sent)+'%) → ответили '+f.rep+' ('+pct(f.rep,f.acc)+'% от принявших)"><span class="fill acc" data-w="'+pct(f.acc,f.sent)+'"></span><span class="fill rep" data-w="'+pct(f.rep,f.sent)+'"></span></span>';
     h+='<span class="nums"><span>отпр <b>'+f.sent+'</b></span><span>прин <b>'+f.acc+'</b> · '+pct(f.acc,f.sent)+'%</span><span>отв <b>'+f.rep+'</b> · '+pct(f.rep,f.acc)+'%</span></span></span>';
     h+='<span><span class="stack">'+OUTCOMES.map(function(x){return '<i style="background:'+x.c+'" data-fb="'+(f.rep?o[x.k]/f.rep*100:0)+'" data-tip="'+x.name+' · '+o[x.k]+' из '+f.rep+' ('+pct(o[x.k],f.rep)+'% ответов)"></i>';}).join('')+'</span>';
     h+='<span class="posline">positive <b>'+posShare+'%</b>'+(f.note?' · '+esc(f.note):'')+'</span></span>';
-    h+='<span class="verdict">'+vchip(f)+'</span>';
+    h+='<span class="verdict">'+(off?offchip():vchip(f))+'</span>';
     h+='<span class="chev" aria-hidden="true"></span></button>';
     h+='<div class="detail"><div class="dinner"><div class="dwrap">';
-    h+='<div class="dverdict">'+vchip(f)+'<span class="dwhy">'+esc(f.why)+'</span></div>';
-    var pACC=(t.acc_pct!=null?t.acc_pct:null), pRR=(t.rep_pct!=null?t.rep_pct:null), pPS=(t.pos_share!=null?t.pos_share:null);
+    h+='<div class="dverdict">'+(off?offchip():vchip(f))+'<span class="dwhy">'+(off?esc(f.off_why||f.offwhy||OFFWHY):esc(f.why))+'</span></div>';
+    var pACC=BE.acc, pRR=BE.rep, pPS=BE.pos;
     var accP=pct(f.acc,f.sent), repP=pct(f.rep,f.acc);
     var weak='';
-    if(pACC&&f.sent>=30&&accP<0.7*pACC)weak='acc';
+    if(off){}                                        // остановленной воронке узкое место не ищем
+    else if(pACC&&f.sent>=30&&accP<0.7*pACC)weak='acc';
     else if(pRR&&f.acc>=10&&repP<0.7*pRR)weak='rep';
     else if(f.rep>=5&&posShare<40)weak='q';
     var wbadge='<span class="weakbadge">узкое место</span>';
@@ -668,8 +703,8 @@ function render(d){
       h+='<div class="cline" data-tip="Всего контактов залито в воронку: '+f.base+'"><span class="clbl">база</span><span class="bar"><span class="fill" style="background:var(--bar1)" data-w="100"></span></span><span class="cnum">'+f.base+'</span><span class="cbench">залито</span></div>';
     }
     h+='<div class="cline" data-tip="'+(f.base?('Отправлено '+f.sent+' из '+f.base+' контактов базы ('+pct(f.sent,f.base)+'%)'):('Отправлено инвайтов: '+f.sent))+'"><span class="clbl">отправлено</span><span class="bar"><span class="fill" style="background:var(--bar2)" data-w="'+(f.base?pct(f.sent,f.base):100)+'"></span></span><span class="cnum">'+f.sent+'</span><span class="cbench">'+(f.base?pct(f.sent,f.base)+'% базы':'вся база')+'</span></div>';
-    h+='<div class="cline'+(weak==='acc'?' weak':'')+'" data-tip="Приняли инвайт: '+f.acc+' - '+accP+'% от отправленных'+(pACC!=null?', среднее по воронкам '+pACC+'%':'')+(f.sent<30?'. Выборки мало для сравнения - нужно от 30 отправок':'')+'"><span class="clbl">принято</span><span class="bar"><span class="fill acc" data-w="'+pct(f.acc,scale)+'"></span>'+bmk(pACC!=null?pct(Math.round(f.sent*pACC/100),scale):null)+'</span><span class="cnum">'+f.acc+'</span>'+bench(accP,pACC,'% отпр',f.sent>=30)+'</div>';
-    h+='<div class="cline'+(weak==='rep'?' weak':'')+'" data-tip="Ответили: '+f.rep+' - '+repP+'% от принявших'+(pRR!=null?', среднее по воронкам '+pRR+'%':'')+(f.acc<10?'. Выборки мало для сравнения - нужно от 10 принявших':'')+'"><span class="clbl">ответили</span><span class="bar"><span class="fill rep" data-w="'+pct(f.rep,scale)+'"></span>'+bmk(pRR!=null?pct(Math.round(f.acc*pRR/100),scale):null)+'</span><span class="cnum">'+f.rep+'</span>'+bench(repP,pRR,'% прин',f.acc>=10)+'</div></div>';
+    h+='<div class="cline'+(weak==='acc'?' weak':'')+'" data-tip="Приняли инвайт: '+f.acc+' - '+accP+'% от отправленных'+(pACC!=null?', среднее по воронкам '+pACC+'%':'')+(f.sent<30?'. Выборки мало для сравнения - нужно от 30 отправок':'')+'"><span class="clbl">принято</span><span class="bar"><span class="fill acc" data-w="'+pct(f.acc,scale)+'"></span>'+bmk(pACC!=null?pct(Math.round(f.sent*pACC/100),scale):null)+'</span><span class="cnum">'+f.acc+'</span>'+bench(accP,pACC,'% отпр',!off&&f.sent>=30)+'</div>';
+    h+='<div class="cline'+(weak==='rep'?' weak':'')+'" data-tip="Ответили: '+f.rep+' - '+repP+'% от принявших'+(pRR!=null?', среднее по воронкам '+pRR+'%':'')+(f.acc<10?'. Выборки мало для сравнения - нужно от 10 принявших':'')+'"><span class="clbl">ответили</span><span class="bar"><span class="fill rep" data-w="'+pct(f.rep,scale)+'"></span>'+bmk(pRR!=null?pct(Math.round(f.acc*pRR/100),scale):null)+'</span><span class="cnum">'+f.rep+'</span>'+bench(repP,pRR,'% прин',!off&&f.acc>=10)+'</div></div>';
     h+='<div><div class="dh">Исходы ответов'+(weak==='q'?wbadge:'')+'</div>';
     h+=OUTCOMES.map(function(x){var n=o[x.k];return '<div class="oline'+(n?'':' zero')+'" data-tip="'+esc(x.name+' - '+DEFS[x.k])+'"><span class="olbl"><i style="background:'+x.c+'"></i>'+x.name+'</span><span class="bar"><span class="fill" style="background:'+x.c+'" data-w="'+(f.rep?n/f.rep*100:0)+'"></span></span><span class="onum">'+n+'<small>'+pct(n,f.rep)+'%</small></span></div>';}).join('');
     if(f.rep){
@@ -689,7 +724,6 @@ function render(d){
     }
     h+='</div></div></div>';
     row.innerHTML=h;
-    rowsEl.appendChild(row);
     var head=row.querySelector('.head');
     var detail=row.querySelector('.detail'),dinner=row.querySelector('.dinner'),chev=row.querySelector('.chev');
     // одна пружина ведёт и высоту, и поворот шеврона: стрелка всё время
@@ -717,7 +751,25 @@ function render(d){
       }
     });
     window.addEventListener('resize',function(){if(open&&detail.style.height!=='auto')detail.style.height=dinner.offsetHeight+'px';});
-  });
+    return row;
+  }
+
+  // живые идут в том порядке, в каком пришли из прогона; остановленные - под разделитель
+  var live=[],dead=[];
+  d.funnels.forEach(function(f){(isOff(f)?dead:live).push(f);});
+  // Планка парка считается по ЖИВЫМ воронкам: остановленная тянет её вниз и делает
+  // отставание живых менее заметным. totals при этом остаются полными - это факт периода.
+  var BE=benchOf(d,live,t);
+  var rowsEl=document.getElementById('rows');
+  live.forEach(function(f){rowsEl.appendChild(makeRow(f,false));});
+  if(dead.length){
+    var ob=document.getElementById('offblock');
+    ob.innerHTML='<div class="split"><span class="splab">Остановленные воронки</span><span class="spct">'+dead.length+'</span><span class="spline"></span></div>'
+      +'<div class="sphint">Выключены в GetSales: цифры зафиксированы на момент остановки, вердикт по ним не ставится.</div>'
+      +'<div class="rows" id="rowsoff"></div>';
+    var offEl=document.getElementById('rowsoff');
+    dead.forEach(function(f){offEl.appendChild(makeRow(f,true));});
+  }
 
   if(d.meetings_list&&d.meetings_list.length){
     var ov=document.createElement('div');
